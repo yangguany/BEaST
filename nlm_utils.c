@@ -92,21 +92,21 @@ void ExtractPatch(float* ima, float* Patch, int x, int y, int z, int size, int s
     {
       for(j=-size;j<=size;j++)
         {
-	  for(k=-size;k<=size;k++)
-            {
-	      ni1=x+i;
-	      nj1=y+j;
-	      nk1=z+k;
-              
-	      if(ni1<0) ni1=-ni1;
-	      if(nj1<0) nj1=-nj1;
-	      if(nk1<0) nk1=-nk1;
-              
-	      if(ni1>=sx) ni1=2*sx-ni1-1;
-	      if(nj1>=sy) nj1=2*sy-nj1-1;
-	      if(nk1>=sz) nk1=2*sz-nk1-1;
-              
-	      Patch[(i+size)*(Psize*Psize)+((j+size)*Psize)+(k+size)] = ima[ni1*(sz*sy)+(nj1*sz)+nk1];
+          for(k=-size;k<=size;k++)
+                  {
+              ni1=x+i;
+              nj1=y+j;
+              nk1=z+k;
+                    
+              if(ni1<0) ni1=-ni1;
+              if(nj1<0) nj1=-nj1;
+              if(nk1<0) nk1=-nk1;
+                    
+              if(ni1>=sx) ni1=2*sx-ni1-1;
+              if(nj1>=sy) nj1=2*sy-nj1-1;
+              if(nk1>=sz) nk1=2*sz-nk1-1;
+                    
+              Patch[(i+size)*(Psize*Psize)+((j+size)*Psize)+(k+size)] = ima[ni1*(sz*sy)+(nj1*sz)+nk1];
             }
         }
     }  
@@ -127,9 +127,9 @@ void ExtractPatch4D(float* ima, float* Patch, int x,int y, int z, int t,int size
     for(i=-size;i<=size;i++)
       {
         for(j=-size;j<=size;j++)
-	  {
+        {
             for(k=-size;k<=size;k++)
-	      {
+            {
                 ni1=x+i;
                 nj1=y+j;
                 nk1=z+k;
@@ -146,10 +146,6 @@ void ExtractPatch4D(float* ima, float* Patch, int x,int y, int z, int t,int size
             }
         }
     }
-    
-    
-    
-    
 }
 
 

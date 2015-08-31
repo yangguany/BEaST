@@ -45,5 +45,6 @@
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
+#cmakedefine MT_USE_OPENMP 1
 
 #define BEAST_LIBRARY_PREFIX "@BEAST_LIBRARY_PREFIX@"

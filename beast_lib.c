@@ -101,24 +101,24 @@ int median_filter(float *volume, int *sizes, int filtersize){
   for (i=margin;i<sizes[0]-margin;i++)
     for (j=margin;j<sizes[1]-margin;j++)
       for (k=margin;k<sizes[2]-margin;k++){
-	index = i*sizes[2]*sizes[1] + j*sizes[2] + k;
-	e=0;
-	for (ii=-margin;ii<=margin;ii++)
-	  for (jj=-margin;jj<=margin;jj++)
-	    for (kk=-margin;kk<=margin;kk++){
-	      kindex = index + (ii*sizes[2]*sizes[1] + jj*sizes[2] + kk);
-	      kernel[e++] = volume[kindex];
-	    }
-	/* sort the values and assign the median */
-	qsort(kernel,e,sizeof(float),cmp_float);
-	result[index]=kernel[numelements/2];
+        index = i*sizes[2]*sizes[1] + j*sizes[2] + k;
+        e=0;
+        for (ii=-margin;ii<=margin;ii++)
+          for (jj=-margin;jj<=margin;jj++)
+            for (kk=-margin;kk<=margin;kk++){
+              kindex = index + (ii*sizes[2]*sizes[1] + jj*sizes[2] + kk);
+              kernel[e++] = volume[kindex];
+            }
+        /* sort the values and assign the median */
+        qsort(kernel,e,sizeof(float),cmp_float);
+        result[index]=kernel[numelements/2];
       }
 
   for (i=margin;i<sizes[0]-margin;i++)
     for (j=margin;j<sizes[1]-margin;j++)
       for (k=margin;k<sizes[2]-margin;k++){
-	index = i*sizes[2]*sizes[1] + j*sizes[2] + k;
-	volume[index] = result[index];
+        index = i*sizes[2]*sizes[1] + j*sizes[2] + k;
+        volume[index] = result[index];
       }
   
   free(kernel);
@@ -216,12 +216,10 @@ int trilinear_interpolant(float *volume, int *sizes, point3D coord, float *resul
 
 int resize_volume(float *input, int *sizes, int *sizes2, float *result){
   int zd,yd,xd,z2d,y2d,x2d;
-  int i,j,k,index,outside=0;
-  float value;
+  int i,outside=0;
   float x_ratio;
   float y_ratio;
   float z_ratio;
-  point3D p;
 
   /* original sizes */
   zd = sizes[0];
@@ -238,24 +236,28 @@ int resize_volume(float *input, int *sizes, int *sizes2, float *result){
   y_ratio = (float)(yd)/(float)y2d ;
   z_ratio = (float)(zd)/(float)z2d ;
 
-  //fprintf(stderr,"Ratios: %f %f %f\n",x_ratio,y_ratio,z_ratio);
-
   /* for each voxel in the new resolution */
+  #pragma omp parallel for reduction(+:outside)
   for (i=0;i<z2d;i++) {
+    int j,k;
     for (j=0;j<y2d;j++) {
       for (k=0;k<x2d;k++) {
-	/* the position in the old resolution */
-	p.x = x_ratio * (float)(k) ;
-	p.y = y_ratio * (float)(j) ;
-	p.z = z_ratio * (float)(i) ;
-	
-	if (!trilinear_interpolant(input, sizes, p, &value)){
-	  outside++;
-	}
+        int index;
+        point3D p;
+        float value;
+        
+        /* the position in the old resolution */
+        p.x = x_ratio * (float)(k) ;
+        p.y = y_ratio * (float)(j) ;
+        p.z = z_ratio * (float)(i) ;
+        
+        if (!trilinear_interpolant(input, sizes, p, &value)){
+          outside++;
+        }
 
-	index = i*y2d*x2d + j*x2d + k;
-	
-	result[index] = value;
+        index = i*y2d*x2d + j*x2d + k;
+        
+        result[index] = value;
       }
     }
   }
@@ -266,12 +268,16 @@ int resize_volume(float *input, int *sizes, int *sizes2, float *result){
 }
 
 void cp_volume(float *data, float *copy, int *sizes){
-  int i,j,k;
-
+  int i;
+  
+  #pragma omp parallel for
   for (i=0;i<sizes[0];i++)
+  {
+    int j,k;
     for (j=0;j<sizes[1];j++)
       for (k=0;k<sizes[2];k++)
-	copy[i*sizes[1]*sizes[2]+j*sizes[2]+k] = data[i*sizes[1]*sizes[2]+j*sizes[2]+k];
+        copy[i*sizes[1]*sizes[2]+j*sizes[2]+k] = data[i*sizes[1]*sizes[2]+j*sizes[2]+k];
+  }
 }
 
 
@@ -287,50 +293,56 @@ int cmp_ssd(const void *vp, const void *vq){
 
 
 static inline  float get_ssd(float *I1, float *I2, float *mask, int *sizes){
-  int j,k,l,index,count=0;
+  int j,count=0;
   float ssd=0;
-
+  
+  #pragma omp parallel for reduction(+:ssd) reduction(+:count)
   for (j=0;j<sizes[0];j++){
+    int k,l;
     for (k=0;k<sizes[1];k++){
       for (l=0;l<sizes[2];l++){	  
-	index = j*sizes[1]*sizes[2] + k*sizes[2] + l;
-	if (mask[index]){
-	  ssd += SQR(I1[index] - I2[index]);
-	  count++;
-	}
+        int index = j*sizes[1]*sizes[2] + k*sizes[2] + l;
+        if (mask[index]){
+          ssd += SQR(I1[index] - I2[index]);
+          count++;
+        }
       }
     }
   }
+  
   ssd /= count;
-
   return ssd;
 }
 
 int down_sample(float *subject, float *result, int factor, int *sizes){
-  int i,j,k,c,l,n,m;
+  int i;
   int di,dj,dk;
-  float av;
 
   di = sizes[0]/factor;
   dj = sizes[1]/factor;
   dk = sizes[2]/factor;
 
+  #pragma omp parallel for
   for (i=0;i<di;i++){
+    int j,k;
+    
     for (j=0;j<dj;j++){
-      for (k=0;k<dk;k++){	  
-        av=0;
-        c=0;        
+      for (k=0;k<dk;k++){
+        float av=0;
+        int   c=0;
+        int   l,n,m;
+        
         for (l=0;l<factor;l++)
           for (m=0;m<factor;m++)
             for (n=0;n<factor;n++)
-	      {
-		av+=subject[(i*factor+l)*sizes[2]*sizes[1] + (j*factor+m)*sizes[2] + k*factor+n];
-		c++;
-	      }
-        
+            {
+              av+=subject[(i*factor+l)*sizes[2]*sizes[1] + (j*factor+m)*sizes[2] + k*factor+n];
+              c++;
+            }
+
         if(!c) continue;
         
-        result[i*dj*dk + j*dk + k] = av/c;
+        result[ i*dj*dk + j*dk + k] = av/c;
       }
     }
   }      
@@ -339,7 +351,7 @@ int down_sample(float *subject, float *result, int factor, int *sizes){
 }
 
 int up_sample(float *subject, float *result, int factor, int *sizes, int *targetsizes){
-  int i,j,k,index,li;
+  int i;
   int di,dj,dk;
   int adji,adjj,adjk;
 
@@ -353,16 +365,21 @@ int up_sample(float *subject, float *result, int factor, int *sizes, int *target
   adjj = sizes[1]*factor;
   adjk = sizes[2]*factor;
 
+  #pragma omp parallel for 
   for (i=0;i<di;i++){
+    int j,k;
+    
     for (j=0;j<dj;j++){
-      for (k=0;k<dk;k++){	  
-	index=i*dj*dk + j*dk + k;
-	if ((i<adji) && (j<adjj) && (k<adjk)){
-	  li = (i/factor)*sizes[2]*sizes[1] + (j/factor)*sizes[2] + k/factor;
-	  result[index] = subject[li];
-	}else{
-	  result[index] = 0;
-	}
+      for (k=0;k<dk;k++){
+        
+        int index=i*dj*dk + j*dk + k;
+        
+        if ((i<adji) && (j<adjj) && (k<adjk)){
+          int li = (i/factor)*sizes[2]*sizes[1] + (j/factor)*sizes[2] + k/factor;
+          result[index] = subject[li];
+        }else{
+          result[index] = 0;
+        }
       }
     }
   }
@@ -371,14 +388,11 @@ int up_sample(float *subject, float *result, int factor, int *sizes, int *target
 }
 
 int resize_trilinear(float *input, int *sizes, int *sizes2, float *result) {
-  float A, B, C, D, E, F, G, H;
   float x_ratio;
   float y_ratio;
   float z_ratio;
-  float x_diff, y_diff, z_diff;
-  int i,j,k,x,y,z,index;
+  int i;
   int zd,yd,xd,z2d,y2d,x2d;
-  int offset = 0 ;
 
   zd = sizes[0];
   yd = sizes[1];
@@ -392,41 +406,48 @@ int resize_trilinear(float *input, int *sizes, int *sizes2, float *result) {
   y_ratio = ((float)(yd))/y2d ;
   z_ratio = ((float)(zd))/z2d ;
 
-  fprintf(stderr,"Ratios: %f %f %f\n",x_ratio,y_ratio,z_ratio);
 
+  #pragma omp parallel for
   for (i=0;i<z2d;i++) {
+    int j,k;
+    
     for (j=0;j<y2d;j++) {
+      
       for (k=0;k<x2d;k++) {
-	x = (int)(x_ratio * (k - 0.5)) ;
-	y = (int)(y_ratio * (j - 0.5)) ;
-	z = (int)(z_ratio * (i - 0.5)) ;
-	x_diff = (x_ratio * (k - 0.5)) - x ;
-	y_diff = (y_ratio * (j - 0.5)) - y ;
-	z_diff = (z_ratio * (i - 0.5)) - z ;
-	index = z*yd*xd + y*xd + x;
+        
+        float A, B, C, D, E, F, G, H;
+        
+        int x = (int)(x_ratio * (k - 0.5)) ;
+        int y = (int)(y_ratio * (j - 0.5)) ;
+        int z = (int)(z_ratio * (i - 0.5)) ;
+        
+        float x_diff = (x_ratio * (k - 0.5)) - x ;
+        float y_diff = (y_ratio * (j - 0.5)) - y ;
+        float z_diff = (z_ratio * (i - 0.5)) - z ;
+        int  index = z*yd*xd + y*xd + x;
+        int  offset = k+ j*x2d + i*x2d*y2d;
+        
+        // get the values
+        A = input[index];
+        B = input[index+1];
+        C = input[index+xd];
+        D = input[index+xd+1];
 
-	// get the values
-	A = input[index];
-	B = input[index+1];
-	C = input[index+xd];
-	D = input[index+xd+1];
-
-	E = input[index+yd*xd];
-	F = input[index+yd*xd+1];
-	G = input[index+yd*xd+xd];
-	H = input[index+yd*xd+xd+1];
-	        
-	result[offset++] =
-	  A*(1-x_diff)*(1-y_diff)*(1-z_diff) +
-	  B*(x_diff)*(1-y_diff)*(1-z_diff) +
-	  C*(y_diff)*(1-x_diff)*(1-z_diff) +
-	  D*(x_diff*y_diff)*(1-z_diff) +
-	  E*(1-x_diff)*(1-y_diff)*z_diff +
-	  F*(x_diff)*(1-y_diff)*z_diff +
-	  G*(1-x_diff)*(y_diff)*z_diff +
-	  H*x_diff*y_diff*z_diff ;	
-	
-	}
+        E = input[index+yd*xd];
+        F = input[index+yd*xd+1];
+        G = input[index+yd*xd+xd];
+        H = input[index+yd*xd+xd+1];
+                
+        result[offset] =
+          A*(1-x_diff)*(1-y_diff)*(1-z_diff) +
+          B*(x_diff)*(1-y_diff)*(1-z_diff) +
+          C*(y_diff)*(1-x_diff)*(1-z_diff) +
+          D*(x_diff*y_diff)*(1-z_diff) +
+          E*(1-x_diff)*(1-y_diff)*z_diff +
+          F*(x_diff)*(1-y_diff)*z_diff +
+          G*(1-x_diff)*(y_diff)*z_diff +
+          H*x_diff*y_diff*z_diff ;	
+        }
       }
     }
     return STATUS_OK;
@@ -434,32 +455,37 @@ int resize_trilinear(float *input, int *sizes, int *sizes2, float *result) {
 
 
 int threshold_data(float *data, int *sizes, float threshold){
-  int i,j,k,index;
+  int i;
   
+  #pragma omp parallel for
   for (i=0;i<sizes[0];i++){
+    int j,k;
     for (j=0;j<sizes[1];j++){
-      for (k=0;k<sizes[2];k++){	  
-	index=i*sizes[2]*sizes[1] + j*sizes[2] + k;
-	if (data[index]>threshold)
-	  data[index]=1;
-	else
-	  data[index]=0;
+      for (k=0;k<sizes[2];k++){
+        int index=i*sizes[2]*sizes[1] + j*sizes[2] + k;
+        
+        if (data[index]>threshold)
+          data[index]=1;
+        else
+          data[index]=0;
       }
     }
   }
-
   return STATUS_OK;
 }
 
 int add_mask_data(float *data1, float *mask, int *sizes){
-  int i,j,k,index;
+  int i;
   
+  #pragma omp parallel for 
   for (i=0;i<sizes[0];i++){
+    int j,k;
+    
     for (j=0;j<sizes[1];j++){
-      for (k=0;k<sizes[2];k++){	  
-	index=i*sizes[2]*sizes[1] + j*sizes[2] + k;
-	if (mask[index])
-	  data1[index]=1;
+      for (k=0;k<sizes[2];k++){
+        int index=i*sizes[2]*sizes[1] + j*sizes[2] + k;
+        if (mask[index])
+          data1[index]=1;
       }
     }
   }
@@ -468,13 +494,15 @@ int add_mask_data(float *data1, float *mask, int *sizes){
 }
 
 int wipe_data(float *data1, int *sizes, float value){
-  int i,j,k,index;
+  int i;
   
+  #pragma omp parallel for 
   for (i=0;i<sizes[0];i++){
+    int j,k;
     for (j=0;j<sizes[1];j++){
       for (k=0;k<sizes[2];k++){	  
-	index=i*sizes[2]*sizes[1] + j*sizes[2] + k;
-	data1[index]=value;
+        int index=i*sizes[2]*sizes[1] + j*sizes[2] + k;
+        data1[index]=value;
       }
     }
   }
@@ -484,45 +512,48 @@ int wipe_data(float *data1, int *sizes, float value){
 
 
 int update_mask(float *subject, float *mask, float *segmented, int *sizes, float min, float max){
-  int i,j,k,index,count=0;
-
+  int i;
+  int count=0;
+  
+  #pragma omp parallel for reduction(+:count)
   for (i=0;i<sizes[0];i++){
+    int j,k;
     for (j=0;j<sizes[1];j++){
-      for (k=0;k<sizes[2];k++){	  
-	index=i*sizes[2]*sizes[1] + j*sizes[2] + k;
-
-	if (mask[index]){
-	  mask[index] = 1;
-	  if (subject[index]<min){
-	    segmented[index] = 0;
-	    mask[index] = 0;
-	  }
-	  else if (subject[index]>max){
-	    segmented[index] = 1;
-	    mask[index] = 0;
-	  }
-	  else {
-	    count++;
-	  }
-	}
-	
+      for (k=0;k<sizes[2];k++){
+        int index=i*sizes[2]*sizes[1] + j*sizes[2] + k;
+        
+        if (mask[index])
+        {
+          mask[index] = 1;
+          if (subject[index]<min){
+            segmented[index] = 0;
+            mask[index] = 0;
+          }
+          else if (subject[index]>max){
+            segmented[index] = 1;
+            mask[index] = 0;
+          } else {
+            count++;
+          }
+        }
+        
       }
     }
   }
-
-
   return count;
 }
 
 int flip_data(float *data, float *result, int *sizes){
-  int i,j,k,index1,index2;
+  int i;
 
+  #pragma omp parallel for
   for (i=0;i<sizes[0];i++){
+    int j,k;
     for (j=0;j<sizes[1];j++){
-      for (k=0;k<sizes[2];k++){	  
-	index1=i*sizes[2]*sizes[1] + j*sizes[2] + k;
-	index2=i*sizes[2]*sizes[1] + j*sizes[2] + (sizes[2]-1-k);
-	result[index1]=data[index2];
+      for (k=0;k<sizes[2];k++){
+        int index1=i*sizes[2]*sizes[1] + j*sizes[2] + k;
+        int index2=i*sizes[2]*sizes[1] + j*sizes[2] + (sizes[2]-1-k);
+        result[index1]=data[index2];
       }
     }
   }
@@ -531,16 +562,18 @@ int flip_data(float *data, float *result, int *sizes){
 }
 
 int combine_maps(float *data, float *map, float *mask, int *sizes){
-  int i,j,k,index;
+  int i;
 
+  #pragma omp parallel for
   for (i=0;i<sizes[0];i++){
+    int j,k;
     for (j=0;j<sizes[1];j++){
       for (k=0;k<sizes[2];k++){	  
-	index=i*sizes[2]*sizes[1] + j*sizes[2] + k;	
-	if (mask[index]){
-	  //data[index]=(data[index]+map[index])/2;
-	  data[index]=map[index];
-	}
+        int index=i*sizes[2]*sizes[1] + j*sizes[2] + k;	
+        if (mask[index]){
+          //data[index]=(data[index]+map[index])/2;
+          data[index]=map[index];
+        }
       }
     }
   }
@@ -563,13 +596,13 @@ int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int
     count=0;
     for(i=-1;i<2;i++)
       for(j=-1;j<2;j++)
-	for(k=-1;k<2;k++){
-	  if(!((i==0)&&(j==0)&&(k==0))){
-	    mask[count][0] = i;
-	    mask[count][1] = j;
-	    mask[count++][2] = k;
-	  }
-	}
+        for(k=-1;k<2;k++){
+          if(!((i==0)&&(j==0)&&(k==0))){
+            mask[count][0] = i;
+            mask[count][1] = j;
+            mask[count++][2] = k;
+          }
+        }
     if(count!=connectivity) fprintf(stderr, "ERROR: error creating mask!\n");
   }
   else if(connectivity==18){
@@ -580,13 +613,13 @@ int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int
     count=0;
     for(i=-1;i<2;i++)
       for(j=-1;j<2;j++)
-	for(k=-1;k<2;k++){
-	  if(!((ABS(i)==1)&&(ABS(j)==1)&&(ABS(k)==1)) && !((i==0)&&(j==0)&&(k==0))) {
-	    mask[count][0] = i;
-	    mask[count][1] = j;
-	    mask[count++][2] = k;
-	  }
-	}
+        for(k=-1;k<2;k++){
+          if(!((ABS(i)==1)&&(ABS(j)==1)&&(ABS(k)==1)) && !((i==0)&&(j==0)&&(k==0))) {
+            mask[count][0] = i;
+            mask[count][1] = j;
+            mask[count++][2] = k;
+          }
+        }
     if(count!=connectivity) fprintf(stderr, "ERROR: error creating mask!\n");
   }
   else if(connectivity==6){
@@ -594,6 +627,7 @@ int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int
     mask[0] = malloc(connectivity*3*sizeof(**mask));
     for(i=1;i<connectivity;i++)
       mask[i] = mask[0] + i*3;
+    
     mask[0][0]=-1;mask[0][1]=0;mask[0][2]=0;
     mask[1][0]=0;mask[1][1]=-1;mask[1][2]=0;
     mask[2][0]=0;mask[2][1]=+1;mask[2][2]=0;
@@ -624,22 +658,22 @@ int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int
   output[index] = fill_value;
   
   /* flood fill the connected component */
-  do{	    
+  do{
     for(i=0;i<connectivity;i++){
       SET_3DPOINT(test_voxel,current_voxel.x+mask[i][0],current_voxel.y+mask[i][1],current_voxel.z+mask[i][2]);
       if((test_voxel.x > -1) && (test_voxel.x < sizes[0]) && 
-	 (test_voxel.y > -1) && (test_voxel.y < sizes[1]) && 
-	 (test_voxel.z > -1) && (test_voxel.z < sizes[2])) {
-	index=test_voxel.z*sizes[2]*sizes[1] + test_voxel.y*sizes[2] + test_voxel.x;
-	original_value = data[index];
-	output_value = output[index];
-	/* if the voxel is connected to the component and the voxels has not already been filled */
-	if ((original_value == iso_value) && (output_value != fill_value)) {
-	  output[index] = fill_value;
-	  LABEL_PUSH(stack,current,test_voxel);
-	  marked++;
-	}
-      }	  
+         (test_voxel.y > -1) && (test_voxel.y < sizes[1]) && 
+         (test_voxel.z > -1) && (test_voxel.z < sizes[2])) {
+        index=test_voxel.z*sizes[2]*sizes[1] + test_voxel.y*sizes[2] + test_voxel.x;
+        original_value = data[index];
+        output_value = output[index];
+        /* if the voxel is connected to the component and the voxels has not already been filled */
+        if ((original_value == iso_value) && (output_value != fill_value)) {
+          output[index] = fill_value;
+          LABEL_PUSH(stack,current,test_voxel);
+          marked++;
+        }
+      }
     }
 
     if ((current > total_voxels - 1) || (marked > total_voxels )){

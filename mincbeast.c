@@ -44,6 +44,12 @@ This is free software, and you are welcome to redistribute it under certain\n\
 conditions; type 'cat COPYING' for details.\n\
 ";
 
+#ifdef MT_USE_OPENMP
+    #include <omp.h>
+#else
+    #define omp_get_num_threads() 0
+    #define omp_get_thread_num() 0
+#endif
 
 int main(int argc, char  *argv[] )
 {
@@ -201,6 +207,10 @@ int main(int argc, char  *argv[] )
   
   fprintf(stderr,"\nmincbeast --\t\tan implementation of BEaST (Brain Extraction\n\t\t\tusing non-local Segmentation Technique) version %s\n\n",PACKAGE_VERSION);
 
+#ifdef MT_USE_OPENMP
+  fprintf(stderr,"Using OpenMP, max number of threads=%d\n",omp_get_max_threads());
+#endif
+  
   /* Get the time, overwriting newline */
   timer = time(NULL);
 
@@ -220,23 +230,9 @@ int main(int argc, char  *argv[] )
     exit(STATUS_ERR);
   }
 
-  /* if(argc>3) */
-  /* { */
   libdir = argv[argc-3];
   input_file = argv[argc-2];
   output_file = argv[argc-1];
-  /* } else { */
-  /*   libdir = default_beast_library; */
-  /*   input_file = argv[argc-2]; */
-  /*   output_file = argv[argc-1]; */
-
-  /*   positive_file=default_beast_positive_file; */
-  /*   conf_file=default_beast_config; */
-  /*   medianfilter=TRUE; */
-  /*   fill_output=TRUE; */
-  /*   same_res=TRUE; */
-  /*   fprintf(stderr,"WARNING: Running mincbeast with default parameters:\n -median -configuration %s -positive %s -fill -same_resolution\n",conf_file,positive_file); */
-  /* } */
 
   if (mask_file==NULL) {
     mask_file=malloc((strlen(libdir)+20)*sizeof(*mask_file));

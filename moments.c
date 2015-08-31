@@ -1,5 +1,5 @@
 /*  moments.c
- *
+ * 
  *  Copyright 2011  Simon Fristed Eskildsen, Vladimir Fonov,
  *   	      	    Pierrick Coupé, Jose V. Manjon
  *
@@ -29,291 +29,296 @@
 
 void ComputeFirstMoment(float* ima, float* means, const int* dims, int f, float *min, float *max)
 {    
-    int indice=0;
-    int i,j,k;
-    int ii,jj,kk;
-    int ni,nj,nk;
-    float mean = 0.0;
-
-    *min=FLT_MAX;
-    *max=FLT_MIN;
-       
-    for(i=0;i<dims[0];i++)
+  int i;
+  float vmin=FLT_MAX;
+  float vmax=-FLT_MAX;
+  
+  #pragma omp parallel for reduction(max:vmax) reduction(min:vmin)
+  for(i=0;i<dims[0];i++)
+  {
+    int j,k;
+    
+    for(j=0;j<dims[1];j++)
     {
-      for(j=0;j<dims[1];j++)
+      for(k=0;k<dims[2];k++)
+      {
+        float mean = 0.0;
+        int indice=0;
+        int ii,jj,kk;
+        
+        for(ii=-f;ii<=f;ii++)
         {
-	  for(k=0;k<dims[2];k++)
-            {                                
-	      mean=0;
-	      indice=0;
+          for(jj=-f;jj<=f;jj++)
+          {
+            for(kk=-f;kk<=f;kk++)
+            {
+              int ni,nj,nk;
               
-	      for(ii=-f;ii<=f;ii++)
-                {
-		  for(jj=-f;jj<=f;jj++)
-                    {
-		      for(kk=-f;kk<=f;kk++)
-                        {
-			  ni=i+ii;
-			  nj=j+jj;
-			  nk=k+kk;
-                          
-			  if(ni<0) ni=-ni;
-			  if(nj<0) nj=-nj;
-			  if(nk<0) nk=-nk;
-			  if(ni>=dims[0]) ni=2*dims[0]-ni-1;
-			  if(nj>=dims[1]) nj=2*dims[1]-nj-1;
-			  if(nk>=dims[2]) nk=2*dims[2]-nk-1;
-                          
-                          
-			  mean = mean + ima[ni*(dims[2]*dims[1])+(nj*dims[2])+nk];			    
-                          
-			  indice=indice+1;
-                          
-                        }
-                    }
-                }
-	      
-	      mean=mean/indice;
-	      
-	      *min=MIN(*min,mean);
-	      *max=MAX(*max,mean);
-	      
-	      means[i*(dims[2]*dims[1])+(j*dims[2])+k]=mean;                
+              ni=i+ii;
+              nj=j+jj;
+              nk=k+kk;
+              
+              if(ni<0) ni=-ni;
+              if(nj<0) nj=-nj;
+              if(nk<0) nk=-nk;
+              if(ni>=dims[0]) ni=2*dims[0]-ni-1;
+              if(nj>=dims[1]) nj=2*dims[1]-nj-1;
+              if(nk>=dims[2]) nk=2*dims[2]-nk-1;
+              
+              
+              mean += ima[ni*(dims[2]*dims[1])+(nj*dims[2])+nk];			    
+              
+              indice+=1;
               
             }
+          }
         }
+        
+        mean=mean/indice;
+        
+        vmin=MIN(vmin,mean);
+        vmax=MAX(vmax,mean);
+        
+        means[i*(dims[2]*dims[1])+(j*dims[2])+k]=mean;
+        
+      }
     }
+  }
+  
+  *min=vmin;
+  *max=vmax;
 }
 
 
 void ComputeSecondMoment(float* ima, float* means, float* variance, const int* dims,int f, float *min, float *max)
 {
+  int i;
+  float vmin=FLT_MAX,vmax=-FLT_MAX;
   
-  int indice =0;
-  int i,j,k;
-  int ii,jj,kk;
-  int ni,nj,nk;
-  float var=0.0;
-  
-  *min=FLT_MAX;
-  *max=FLT_MIN;
-  
-  
+  #pragma omp parallel for reduction(max:vmax) reduction(min:vmin)
   for(i=0;i<dims[0];i++)
+  {
+    int j,k;
+    for(j=0;j<dims[1];j++)
     {
-      for(j=0;j<dims[1];j++)
+      for(k=0;k<dims[2];k++)
+      {
+        int indice =0;
+        float var=0.0;
+        int ii,jj,kk;
+        int index1=i*(dims[2]*dims[1])+(j*dims[2])+k;
+        
+        for(ii=-f;ii<=f;ii++)
         {
-	  for(k=0;k<dims[2];k++)
+          for(jj=-f;jj<=f;jj++)
+          {
+            for(kk=-f;kk<=f;kk++)
             {
-	      
-	      var=0;
-	      indice=0;
-	      
-	      for(ii=-f;ii<=f;ii++)
-                {
-		  for(jj=-f;jj<=f;jj++)
-                    {
-		      for(kk=-f;kk<=f;kk++)
-                        {
-			  ni=i+ii;
-			  nj=j+jj;
-			  nk=k+kk;
-			  if(ni>=0 && nj>=0 && nk>0 && ni<dims[0] && nj<dims[1] && nk<dims[2])
-                            {
-			      var = var + ((ima[ni*(dims[2]*dims[1])+(nj*dims[2])+nk]-means[i*(dims[2]*dims[1])+(j*dims[2])+k])*(ima[ni*(dims[2]*dims[1])+(nj*dims[2])+nk]-means[i*(dims[2]*dims[1])+(j*dims[2])+k]));
-			      indice=indice+1;
-                            }
-                        }
-                    }
-                }
-	      var=var/(indice-1);
-	      
-	      *min=MIN(*min,var);
-	      *max=MAX(*max,var);                
-              
-	      variance[i*(dims[2]*dims[1])+(j*dims[2])+k]=var;
-              
+              int ni,nj,nk;
+              ni=i+ii;
+              nj=j+jj;
+              nk=k+kk;
+              if(ni>=0 && nj>=0 && nk>0 && ni<dims[0] && nj<dims[1] && nk<dims[2])
+              {
+                int index2=ni*(dims[2]*dims[1])+(nj*dims[2])+nk;
+                var +=  ((ima[index2]-means[index1])*(ima[index2]-means[index1]));
+                indice+=1;
+              }
             }
+          }
         }
+        var=var/(indice-1);
+        
+        vmin=MIN(vmin,var);
+        vmax=MAX(vmax,var);
+        
+        variance[index1]=var;
+        
+      }
     }
-    
+  }
+
+  *min=vmin;
+  *max=vmax;
 }
 
 
 void ComputeFirstMoment4D(float* ima,float* atlas, float* means, float* Ameans,const int* dims, int f)
 {
-    
-  int indice=0;
-  int i,j,k,t;
-  int ii,jj,kk;
-  int ni,nj,nk;
-  float mean = 0.0;
-  float Amean = 0.0;
+  int k,t;
   
-  
+  #pragma omp parallel for 
   for(k=0;k<dims[2];k++)
+  {
+    int i,j;
+    for(i=0;i<dims[1];i++)
     {
-      for(i=0;i<dims[1];i++)
+      for(j=0;j<dims[0];j++)
+      {
+        int indice=0;
+        float Amean = 0.0;
+        int ii,jj,kk;
+        
+        for(ii=-f;ii<=f;ii++)
         {
-	  for(j=0;j<dims[0];j++)
+          for(jj=-f;jj<=f;jj++)
+          {
+            for(kk=-f;kk<=f;kk++)
             {
-	      
+              int ni,nj,nk;
               
-	      Amean=0;
-	      indice=0;
+              ni=i+ii;
+              nj=j+jj;
+              nk=k+kk;
               
-	      for(ii=-f;ii<=f;ii++)
-                {
-		  for(jj=-f;jj<=f;jj++)
-                    {
-		      for(kk=-f;kk<=f;kk++)
-                        {
-			  ni=i+ii;
-			  nj=j+jj;
-			  nk=k+kk;
-                          
-			  if(ni<0) ni=-ni;
-			  if(nj<0) nj=-nj;
-			  if(nk<0) nk=-nk;
-			  if(ni>=dims[1]) ni=2*dims[1]-ni-1;
-			  if(nj>=dims[0]) nj=2*dims[0]-nj-1;
-			  if(nk>=dims[2]) nk=2*dims[2]-nk-1;
-                          
-                          
-			  Amean = Amean + atlas[nk*(dims[0]*dims[1])+(ni*dims[0])+nj];
-			  indice=indice+1;
-                          
-                        }
-                    }
-                }
-	      
-	      Amean=Amean/indice;
-	      Ameans[k*(dims[0]*dims[1])+(i*dims[0])+j]=Amean;
+              if(ni<0) ni=-ni;
+              if(nj<0) nj=-nj;
+              if(nk<0) nk=-nk;
+              if(ni>=dims[1]) ni=2*dims[1]-ni-1;
+              if(nj>=dims[0]) nj=2*dims[0]-nj-1;
+              if(nk>=dims[2]) nk=2*dims[2]-nk-1;
+              
+              
+              Amean += atlas[nk*(dims[0]*dims[1])+(ni*dims[0])+nj];
+              indice+=1;
               
             }
+          }
         }
+        
+        Amean=Amean/indice;
+        Ameans[k*(dims[0]*dims[1])+(i*dims[0])+j]=Amean;
+      }
     }
-  
+  }
+
   for(t=0;t<dims[3];t++)
+  {
+    #pragma omp parallel for 
+    for(k=0;k<dims[2];k++)
     {
-      for(k=0;k<dims[2];k++)
+      int i,j;
+      for(i=0;i<dims[1];i++)
+      {
+        for(j=0;j<dims[0];j++)
         {
-	  for(i=0;i<dims[1];i++)
+          int indice=0;
+          float mean = 0.0;
+          int ii,jj,kk;
+          
+          for(ii=-f;ii<=f;ii++)
+          {
+            for(jj=-f;jj<=f;jj++)
             {
-	      for(j=0;j<dims[0];j++)
-                {		                                      
-		  mean=0;
-		  indice=0;
-                  
-		  for(ii=-f;ii<=f;ii++)
-                    {
-		      for(jj=-f;jj<=f;jj++)
-                        {
-			  for(kk=-f;kk<=f;kk++)
-                            {
-			      ni=i+ii;
-			      nj=j+jj;
-			      nk=k+kk;
-                              
-			      if(ni<0) ni=-ni;
-			      if(nj<0) nj=-nj;
-			      if(nk<0) nk=-nk;
-			      if(ni>=dims[1]) ni=2*dims[1]-ni-1;
-			      if(nj>=dims[0]) nj=2*dims[0]-nj-1;
-			      if(nk>=dims[2]) nk=2*dims[2]-nk-1;
-                              
-			      mean = mean + ima[t*(dims[0]*dims[1]*dims[2])+(nk*(dims[0]*dims[1])+(ni*dims[0])+nj)];
-			      indice=indice+1;
-                              
-                            }
-                        }
-                    }
-		  
-		  mean=mean/indice;
-		  means[t*(dims[0]*dims[1]*dims[2])+(k*(dims[0]*dims[1])+(i*dims[0])+j)]=mean;
-                  
-                }
+              for(kk=-f;kk<=f;kk++)
+              {
+                int ni,nj,nk;
+                ni=i+ii;
+                nj=j+jj;
+                nk=k+kk;
+                
+                if(ni<0) ni=-ni;
+                if(nj<0) nj=-nj;
+                if(nk<0) nk=-nk;
+                if(ni>=dims[1]) ni=2*dims[1]-ni-1;
+                if(nj>=dims[0]) nj=2*dims[0]-nj-1;
+                if(nk>=dims[2]) nk=2*dims[2]-nk-1;
+                
+                mean   +=  ima[t*(dims[0]*dims[1]*dims[2])+(nk*(dims[0]*dims[1])+(ni*dims[0])+nj)];
+                indice +=1;
+              }
             }
-        }           
-    }     
+          }
+          
+          mean=mean/indice;
+          means[t*(dims[0]*dims[1]*dims[2])+(k*(dims[0]*dims[1])+(i*dims[0])+j)]=mean;
+          
+        }
+      }
+    }
+  }
 }
 
 void ComputeSecondMoment4D(float* ima,float* atlas, float* means, float* Ameans, float* variance, float* Avariance,const int* dims,int f)
 {    
-  int indice =0;
-  int i,j,k,t;
-  int ii,jj,kk;
-  int ni,nj,nk;
-  float var=0.0;
-  float Avar=0.0;
+  int k,t;
   
+  #pragma omp parallel for 
   for(k=0;k<dims[2];k++)
+  {
+    int i,j;
+    for(i=0;i<dims[1];i++)
     {
-      for(i=0;i<dims[1];i++)
+      for(j=0;j<dims[0];j++)
+      {
+        int ii,jj,kk;
+        float Avar=0.0;
+        int indice =0;
+        
+        for(ii=-f;ii<=f;ii++)
         {
-	  for(j=0;j<dims[0];j++)
+          for(jj=-f;jj<=f;jj++)
+          {
+            for(kk=-f;kk<=f;kk++)
             {
-	      
+              int ni,nj,nk;
               
-	      Avar=0;
-	      indice=0;
-	      for(ii=-f;ii<=f;ii++)
-                {
-		  for(jj=-f;jj<=f;jj++)
-                    {
-		      for(kk=-f;kk<=f;kk++)
-                        {
-			  ni=i+ii;
-			  nj=j+jj;
-			  nk=k+kk;
-			  if(ni>=0 && nj>=0 && nk>0 && ni<dims[1] && nj<dims[0] && nk<dims[2])
-                            {
-			      Avar = Avar + ((atlas[nk*(dims[0]*dims[1])+(ni*dims[0])+nj]-Ameans[k*(dims[0]*dims[1])+(i*dims[0])+j])*(atlas[nk*(dims[0]*dims[1])+(ni*dims[0])+nj]-Ameans[k*(dims[0]*dims[1])+(i*dims[0])+j]));
-			      indice=indice+1;
-                            }
-                        }
-                    }
-                }
-	      
-	      Avar=Avar/(indice-1);
-	      Avariance[k*(dims[0]*dims[1])+(i*dims[0])+j]=Avar;
+              ni=i+ii;
+              nj=j+jj;
+              nk=k+kk;
+              if(ni>=0 && nj>=0 && nk>0 && ni<dims[1] && nj<dims[0] && nk<dims[2])
+              {
+                Avar += ((atlas[nk*(dims[0]*dims[1])+(ni*dims[0])+nj]-Ameans[k*(dims[0]*dims[1])+(i*dims[0])+j])*(atlas[nk*(dims[0]*dims[1])+(ni*dims[0])+nj]-Ameans[k*(dims[0]*dims[1])+(i*dims[0])+j]));
+                indice+=1;
+              }
             }
+          }
         }
+        
+        Avar=Avar/(indice-1);
+        Avariance[k*(dims[0]*dims[1])+(i*dims[0])+j]=Avar;
+      }
     }
+  }
   
   for(t=0;t<dims[3];t++)
+  {
+    #pragma omp parallel for 
+    for(k=0;k<dims[2];k++)
     {
-      for(k=0;k<dims[2];k++)
+      int i,j;
+      for(i=0;i<dims[1];i++)
+      {
+        for(j=0;j<dims[0];j++)
         {
-	  for(i=0;i<dims[1];i++)
-	    {
-	      for(j=0;j<dims[0];j++)
-                {		                    
-		  var=0;
-		  indice=0;
-                  
-		  for(ii=-f;ii<=f;ii++)
-                    {
-		      for(jj=-f;jj<=f;jj++)
-                        {
-			  for(kk=-f;kk<=f;kk++)
-                            {
-			      ni=i+ii;
-			      nj=j+jj;
-			      nk=k+kk;
-			      if(ni>=0 && nj>=0 && nk>0 && ni<dims[1] && nj<dims[0] && nk<dims[2])
-                                {
-				  var = var + ((ima[t*(dims[0]*dims[1]*dims[2])+nk*(dims[0]*dims[1])+(ni*dims[0])+nj]-means[t*(dims[0]*dims[1]*dims[2])+k*(dims[0]*dims[1])+(i*dims[0])+j])*(ima[t*(dims[0]*dims[1]*dims[2])+nk*(dims[0]*dims[1])+(ni*dims[0])+nj]-means[t*(dims[0]*dims[1]*dims[2])+k*(dims[0]*dims[1])+(i*dims[0])+j]));
-				  indice=indice+1;
-                                }
-                            }
-                        }
-                    }
-                    
-		  var=var/(indice-1);
-		  variance[t*(dims[0]*dims[1]*dims[2])+k*(dims[0]*dims[1])+(i*dims[0])+j]=var;
+          int ii,jj,kk;
+          float var=0.0;
+          int indice =0;
+          
+          for(ii=-f;ii<=f;ii++)
+          {
+            for(jj=-f;jj<=f;jj++)
+            {
+              for(kk=-f;kk<=f;kk++)
+              {
+                int ni,nj,nk;
+                
+                ni=i+ii;
+                nj=j+jj;
+                nk=k+kk;
+                if(ni>=0 && nj>=0 && nk>0 && ni<dims[1] && nj<dims[0] && nk<dims[2])
+                {
+                  var += ((ima[t*(dims[0]*dims[1]*dims[2])+nk*(dims[0]*dims[1])+(ni*dims[0])+nj]-means[t*(dims[0]*dims[1]*dims[2])+k*(dims[0]*dims[1])+(i*dims[0])+j])*(ima[t*(dims[0]*dims[1]*dims[2])+nk*(dims[0]*dims[1])+(ni*dims[0])+nj]-means[t*(dims[0]*dims[1]*dims[2])+k*(dims[0]*dims[1])+(i*dims[0])+j]));
+                  indice+=1;
                 }
+              }
             }
-        }        
-    }  
+          }
+          
+          var=var/(indice-1);
+          variance[t*(dims[0]*dims[1]*dims[2])+k*(dims[0]*dims[1])+(i*dims[0])+j]=var;
+        }
+      }
+    }
+  }
 }

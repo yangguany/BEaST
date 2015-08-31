@@ -146,7 +146,7 @@ int write_nifti_generic(char *filename, float *image, image_metadata *meta)
   ntot = nifti_get_volsize(nim);
 
   nim->data = (void *)calloc(1,ntot);  /* create image memory */
-  bcopy(image, nim->data, ntot); /* copy data */
+  memmove(nim->data, image , ntot); /* copy data */
   
   ll = strlen(filename) ;
   nim->fname = (char *)calloc(1,ll+1) ; strcpy(nim->fname,filename) ;
