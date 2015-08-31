@@ -22,6 +22,10 @@
  *  Simon Fristed Eskildsen <eskild@gmail.com> 
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif //HAVE_CONFIG_H
+
 
 #include <math.h>
 #include <stdlib.h>
@@ -33,6 +37,15 @@
 #include "nlmseg.h"
 
 #define MINCOUNT 100
+
+
+#ifdef MT_USE_OPENMP
+    #include <omp.h>
+#else
+    #define omp_get_num_threads() 1
+    #define omp_get_thread_num() 0
+    #define omp_get_max_threads() 1
+#endif
 
 /*Can be use to store the distance and the location*/
 /*Some compilation issues can occur here, use typedef strcut with window*/
@@ -52,11 +65,26 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
   float min,max;
   
   int sadims,volumesize,index;
-  int t,mincount=MINCOUNT;
+  int mincount=MINCOUNT;
   int notfinished;
   double minidist;
   double epsi = 0.0001;
   time_t time1,time2;
+  
+  /*per thread temp storage*/
+  data_t **_tab       =(data_t **)malloc(omp_get_max_threads()*sizeof(data_t*));
+  float  **_PatchImg  =(float **) malloc(omp_get_max_threads()*sizeof(float*));
+  float  **_PatchTemp =(float **) malloc(omp_get_max_threads()*sizeof(float*));
+  
+  printf("Allocating temp variables for %d threads\n",omp_get_max_threads());
+  
+  for(i=0;i<omp_get_max_threads();i++)
+  {
+    _PatchImg[i] =(float*) malloc((2*f+1)*(2*f+1)*(2*f+1)*sizeof(float));
+    _PatchTemp[i]=(float*) malloc((2*f+1)*(2*f+1)*(2*f+1)*sizeof(float));
+    fprintf(stderr, "%d %lx %lx\n",i,(long unsigned int)_PatchImg[i],(long unsigned int)_PatchTemp[i]);
+  }
+  
   
   fprintf(stderr,"Patch size: %d\nSearch area: %d\nBeta: %f\nThreshold: %f\nSelection: %d\n",sizepatch,searcharea,beta,threshold,librarysize);
   
@@ -71,8 +99,7 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
   
   sadims = pow(2*v+1,ndim);
   sadims = sadims * librarysize;
-  
-  
+
   /* allocate memory */
   MeansSubj = (float *)calloc(volumesize,sizeof(*MeansSubj));
   VarsSubj =  (float *)calloc(volumesize,sizeof(*VarsSubj));
@@ -91,181 +118,199 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
   fprintf(stderr,"done");
   time1=time(NULL);
   
-  if (1){
+  do {
+    fprintf(stderr," (%d sec)\nSegmenting      ",(int)(time1-time2));
+    time2=time(NULL);
+    notfinished=0;
     
-    do {
-      fprintf(stderr," (%d sec)\nSegmenting      ",(int)(time1-time2));
-      time2=time(NULL);
-      notfinished=0;
+    for(i=0;i<omp_get_max_threads();i++)
+    {
+      _tab[i]=(data_t*)malloc(sadims*sizeof(data_t));
+    }
+    
+    #pragma omp parallel for shared(_tab,_PatchImg,_PatchTemp) reduction(+:notfinished)
+    for(i=0;i<dims[0];i++)
+    { /*start parallel section*/
+      int j,k;
+      float *PatchImg, *PatchTemp;
+      data_t  *tab;
       
-      for(i=0;i<dims[0];i++)
-      { /*start parallel section*/
-        int j,k;
-        float *PatchImg, *PatchTemp;
-        
-        fprintf(stderr,"\b\b\b\b\b\b\b\b\b%3d / %3d",i+1,dims[0]);
-        
-        /*allocate temporary memory, per thread*/
-        data_t  *tab=(data_t*)malloc(sadims*sizeof(*tab));
-        PatchImg =(float*) malloc((2*f+1)*(2*f+1)*(2*f+1)*sizeof(float));
-        PatchTemp=(float*) malloc((2*f+1)*(2*f+1)*(2*f+1)*sizeof(float));
-        
-        for(j=0;j<dims[1];j++)
+      /*if( omp_get_thread_num()==0 )
+        fprintf(stderr,"\b\b\b\b\b\b\b\b\b%3d / %3d", i*omp_get_num_threads()+1, dims[0]);*/
+      /*use thread-specific temp memory*/
+      fprintf(stderr,"%3d\t", i);
+      
+      tab          = _tab      [omp_get_thread_num()];
+      PatchImg     = _PatchImg [omp_get_thread_num()];
+      PatchTemp    = _PatchTemp[omp_get_thread_num()];
+      
+      for(j=0;j<dims[1];j++)
+      {
+        for(k=0;k<dims[2];k++)
         {
-          for(k=0;k<dims[2];k++)
+          int index=i*(dims[2]*dims[1])+(j*dims[2])+k;
+          
+          /* mask check */
+          if ( localmask[index]  > 0 )
           {
-            int index=i*(dims[2]*dims[1])+(j*dims[2])+k;
+            int ii,jj,kk;
+            float proba=0.;
+            float average=0;
+            float totalweight=0;
+            int count = 0;
+            float minidist = 1e10; /*FLT_MAX;*/
+            float TMean,TVar;
             
-            /* mask check */
-            if ( localmask[index]  > 0 )
+            ExtractPatch(subject, PatchTemp, i, j, k, f, dims[0], dims[1], dims[2]);
+            
+            TMean = MeansSubj[index];
+            TVar =  VarsSubj [index];
+            
+            /* go through the search space  */
+            for(ii=-v;ii<=v;ii++)
             {
-              int ii,jj,kk;
-              float proba=0.;
-              float average=0;
-              float totalweight=0;
-              int count = 0;
-              float minidist = 1e10; /*FLT_MAX;*/
-              float TMean,TVar;
-              
-              ExtractPatch(subject, PatchTemp, i, j, k, f, dims[0], dims[1], dims[2]);
-              
-              TMean = MeansSubj[index];
-              TVar =  VarsSubj [index];
-              
-              /* go through the search space  */
-              for(ii=-v;ii<=v;ii++)
+              for(jj=-v;jj<=v;jj++)
               {
-                for(jj=-v;jj<=v;jj++)
+                for(kk=-v;kk<=v;kk++)
                 {
-                  for(kk=-v;kk<=v;kk++)
+                  int ni,nj,nk;
+                  ni=i+ii;
+                  nj=j+jj;
+                  nk=k+kk;
+                  
+                  if((ni>=0) && (nj>=0) && (nk>=0) && (ni<dims[0]) && (nj<dims[1]) && (nk<dims[2]))
                   {
-                    int ni,nj,nk;
-                    ni=i+ii;
-                    nj=j+jj;
-                    nk=k+kk;
-                    
-                    if((ni>=0) && (nj>=0) && (nk>=0) && (ni<dims[0]) && (nj<dims[1]) && (nk<dims[2]))
+                    int t;
+                    for(t=0;t<librarysize;t++)
                     {
+                      int index2=t*volumesize+ni*(dims[2]*dims[1])+(nj*dims[2])+nk;
+                      float Mean = meandata[index2];
+                      float Var =  vardata [index2];
                       
-                      for(t=0;t<librarysize;t++)
+                      /*Similar Luminance and contrast -> Cf Wang TIP 2004*/
+                      float th = ((2 * Mean * TMean + epsi) / ( Mean*Mean + TMean*TMean + epsi))  * ((2 * sqrt(Var) * sqrt(TVar) + epsi) / (Var + TVar + epsi));
+                      if(th > threshold)
                       {
-                        int index2=t*volumesize+ni*(dims[2]*dims[1])+(nj*dims[2])+nk;
-                        float Mean = meandata[index2];
-                        float Var =  vardata [index2];
+                        float d;
+                        data_t storage;
                         
-                        /*Similar Luminance and contrast -> Cf Wang TIP 2004*/
-                        float th = ((2 * Mean * TMean + epsi) / ( Mean*Mean + TMean*TMean + epsi))  * ((2 * sqrt(Var) * sqrt(TVar) + epsi) / (Var + TVar + epsi));
-                        if(th > threshold)
-                        {
-                          float d;
-                          data_t storage;
+                        ExtractPatch4D(imagedata, PatchImg,ni,nj,nk,t,f,dims[0],dims[1],dims[2]);
+                        d =  SSDPatch(PatchImg,PatchTemp,f);
+                        if (d < minidist) minidist = d;
+                        storage.dist  = d;
+                        storage.z = ni;
+                        storage.y = nj;
+                        storage.x = nk;
+                        storage.t = t;
                           
-                          ExtractPatch4D(imagedata, PatchImg,ni,nj,nk,t,f,dims[0],dims[1],dims[2]);
-                          d =  SSDPatch(PatchImg,PatchTemp,f);
-                          if (d < minidist) minidist = d;
-                          storage.dist  = d;
-                          storage.z = ni;
-                          storage.y = nj;
-                          storage.x = nk;
-                          storage.t = t;
-                          tab[count] = storage;
-                          count ++;
-                        }
+                        tab[count] = storage;
+                        count ++;
+                        
                       }
                     }
                   }
                 }
               }
+            }
+            
+            /* require a minimum number of selected patches  */
+            if (count >= mincount) {
+              int realcount=0;
+              int p=0;
+              /* Sort the distance*/
+              /*This can be removed according to the chosen strategy*/
+              /*qsort (tab, count, sizeof *tab, cmp);*/
               
-              /* require a minimum number of selected patches  */
-              if (count >= mincount) {
-                int realcount=0;
-                int p=0;
-                /* Sort the distance*/
-                /*This can be removed according to the chosen strategy*/
-                /*qsort (tab, count, sizeof *tab, cmp);*/
+              /*You can use the closest Patches (i.e. the 'lim' closest ones) or all the preselected patches (count)*/
+              //lim = count; /*in this case, you take all the preselected patches into account*/
+              
+              if (minidist<=0) minidist = epsi; /*to avoid division by zero*/		   
                 
-                /*You can use the closest Patches (i.e. the 'lim' closest ones) or all the preselected patches (count)*/
-                //lim = count; /*in this case, you take all the preselected patches into account*/
-                
-                if (minidist<=0) minidist = epsi; /*to avoid division by zero*/		   
+                while (p < count)
+                {
+                  data_t storage = tab[p];
+                  float w = exp(- ((storage.dist)/(beta*(minidist)) ) ); /*The smoothing parameter is the minimal distance*/
                   
-                  while (p < count)
+                  if (w>0)  
                   {
-                    data_t storage = tab[p];
-                    float w = exp(- ((storage.dist)/(beta*(minidist)) ) ); /*The smoothing parameter is the minimal distance*/
-                    
-                    if (w>0)  
-                    {
-                      average  = average + maskdata[(storage.t*volumesize)+(storage.z*(dims[2]*dims[1]))+(storage.y*dims[2])+storage.x]*w;			      
-                      totalweight = totalweight + w;
-                      realcount++;
-                    }
-                    
-                    p++;
-                  } // while
+                    average  = average + maskdata[(storage.t*volumesize)+(storage.z*(dims[2]*dims[1]))+(storage.y*dims[2])+storage.x]*w;			      
+                    totalweight = totalweight + w;
+                    realcount++;
+                  }
                   
-                  /* We compute the probability */
-                  proba = average / totalweight;
-                  
-                  SegSubject[index] = proba;
-                  PatchCount[index] = realcount;
-                  
-              } else {
-                /* Not enough similar patches */
-                notfinished+=1;
-                SegSubject[index] = -1;
-              }
-            
-            }// mask check
-            
-          } // for k
-        } // for j
-        
-        /*Freeing per-thread data*/
-        free(tab);
-        free(PatchImg);
-        free(PatchTemp);
-        /*end of parallel section*/
-      } // for i
+                  p++;
+                } // while
+                
+                /* We compute the probability */
+                proba = average / totalweight;
+                
+                SegSubject[index] = proba;
+                PatchCount[index] = realcount;
+                
+            } else {
+              /* Not enough similar patches */
+              notfinished+=1;
+              SegSubject[index] = -1;
+            }
+          
+          }// mask check
+          
+        } // for k
+      } // for j
       
-      time1=time(NULL);
+      /*Freeing per-thread data*/
+      /*end of parallel section*/
+    } // for i
+    
+    time1=time(NULL);
+    
+    if ( notfinished>0 ) {
+      int count;
+      threshold=threshold*0.95;
+      mincount=mincount*0.95;
+      v=v+1;
+      count=0;
       
-      if ( notfinished>0 ) {
-        int count;
-        threshold=threshold*0.95;
-        mincount=mincount*0.95;
-        v=v+1;
-        count=0;
-        
-        #pragma parallel for reduction(+:count)
-        for(i=0;i<dims[0];i++)
+      #pragma parallel for reduction(+:count)
+      for(i=0;i<dims[0];i++)
+      {
+        int j,k;
+        for(j=0;j<dims[1];j++)	    
         {
-          int j,k;
-          for(j=0;j<dims[1];j++)	    
+          for(k=0;k<dims[2];k++)                
           {
-            for(k=0;k<dims[2];k++)                
-            {
-              int index=i*(dims[2]*dims[1])+(j*dims[2])+k;
-              
-              if (SegSubject[index]<0){
-                localmask[index] = 1;
-                count++;
-              }else{
-                localmask[index] = 0;
-              }
+            int index=i*(dims[2]*dims[1])+(j*dims[2])+k;
+            
+            if (SegSubject[index]<0){
+              localmask[index] = 1;
+              count++;
+            }else{
+              localmask[index] = 0;
             }
           }
         }
-        
-        fprintf(stderr," (redoing %d voxels) t=%f, min=%d ",count, threshold, mincount);
-        sadims = pow(2*v+1,ndim);
-        sadims = sadims * librarysize;
       }
       
-    } while (notfinished);
+      fprintf(stderr," (redoing %d voxels) t=%f, min=%d ",count, threshold, mincount);
+      sadims = pow(2*v+1,ndim);
+      sadims = sadims * librarysize;
+    }
     
+    for(i=0;i<omp_get_max_threads();i++)
+      free(_tab[i]);
+
+  } while (notfinished);
+
+  for(i=0;i<omp_get_max_threads();i++)
+  {
+    free(_PatchImg[i]);
+    free(_PatchTemp[i]);
   }
+  
+  free(_PatchImg);
+  free(_PatchTemp);
+  free(_tab);
+
   
   fprintf(stderr," done (%d sec, t=%f, min=%d)\n",(int)(time1-time2),threshold,mincount);
   
