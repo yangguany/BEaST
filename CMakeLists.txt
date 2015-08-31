@@ -27,8 +27,12 @@ IF(NOT MINC_TOOLKIT_BUILD)
   IF(USE_NIFTI)
     SET(NIFTI_ROOT "/usr/local/bic" CACHE PATH "niftiio library base")
   ENDIF(USE_NIFTI)
-  
+
+  OPTION(MT_USE_OPENMP  "Use OpenMP multi-threading" OFF)
+
 ENDIF(NOT MINC_TOOLKIT_BUILD)
+
+
 
 
 SET(PACKAGE "mincbeast")
@@ -70,6 +74,18 @@ CHECK_INCLUDE_FILES(strings.h   HAVE_STRINGS_H)
 CHECK_INCLUDE_FILES(math.h      HAVE_MATH_H)
 
 SET(BEAST_LIBRARY_PREFIX "${CMAKE_INSTALL_PREFIX}/share/beast-library-1.0")
+
+if (MT_USE_OPENMP)
+    FIND_PACKAGE(OpenMP)
+    if(OPENMP_FOUND)
+        set(CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}   ${OpenMP_C_FLAGS}")
+        set(CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+    else()
+        message(WARNING "OpenMP NOT found")
+    endif()
+endif()
+
 
 # others
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
