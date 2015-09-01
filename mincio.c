@@ -23,8 +23,22 @@
  */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif //HAVE_CONFIG_H
+
+
 #include <float.h>
 #include "mincio.h"
+
+#ifdef MT_USE_OPENMP
+    #include <omp.h>
+#else
+    #define omp_get_num_threads() 1
+    #define omp_get_thread_num() 0
+    #define omp_get_max_threads() 1
+#endif
+
 
 void set_volume(float *data, VIO_Volume vol, int *sizes){
   int i,j,k;

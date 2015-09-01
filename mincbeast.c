@@ -47,8 +47,9 @@ conditions; type 'cat COPYING' for details.\n\
 #ifdef MT_USE_OPENMP
     #include <omp.h>
 #else
-    #define omp_get_num_threads() 0
+    #define omp_get_num_threads() 1
     #define omp_get_thread_num() 0
+    #define omp_get_max_threads() 1
 #endif
 
 int main(int argc, char  *argv[] )
@@ -523,9 +524,9 @@ int main(int argc, char  *argv[] )
     if (flipimages) {
       /* doubling the library selection by flipping images along the mid-sagittal plane */
       imagedata = (float *)realloc(imagedata,configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*imagedata));
-      maskdata = (float *)realloc(maskdata,configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*maskdata));
-      meandata = (float *)realloc(meandata,configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*meandata));
-      vardata = (float *)realloc(vardata,configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*vardata));
+      maskdata =  (float *)realloc(maskdata,configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*maskdata));
+      meandata =  (float *)realloc(meandata,configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*meandata));
+      vardata =   (float *)realloc(vardata,configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*vardata));
 
       for (i=0; i<configuration[scale].selectionsize; i++) {
         flip_data(imagedata+i*scaledvolumesize, imagedata+(configuration[scale].selectionsize+i)*scaledvolumesize, sizes[scale]);

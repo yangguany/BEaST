@@ -99,7 +99,7 @@ float nlmfilter(float *subject, float *mask, float *maskdata, int sizepatch, int
   if (1){
     
     do {
-      fprintf(stderr," (%d sec)\nSegmenting sharp    ",(int)(time1-time2));
+      fprintf(stderr," (%d sec)\nSegmenting    ",(int)(time1-time2));
       time2=time(NULL);
       notfinished=0;
       

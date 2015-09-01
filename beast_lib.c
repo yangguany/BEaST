@@ -43,6 +43,14 @@
 #include "niftiio.h"
 #endif 
 
+#ifdef MT_USE_OPENMP
+    #include <omp.h>
+#else
+    #define omp_get_num_threads() 1
+    #define omp_get_thread_num() 0
+    #define omp_get_max_threads() 1
+#endif
+
 
 //#define DEBUG
 
@@ -92,20 +100,31 @@ int fgetline(FILE *fp, char line[], int max){
 
 
 int median_filter(float *volume, int *sizes, int filtersize){
-  int i,j,k,numelements,margin;
-  int ii,jj,kk,e,index,kindex;
-  float *kernel, *result;
+  int i,numelements,margin;
+  float **_kernel;
+  float *result;
 
   margin = filtersize / 2;
   
   numelements=filtersize*filtersize*filtersize;
-  kernel = malloc(numelements*sizeof(*kernel));
+  
+  _kernel=malloc(omp_get_max_threads()*sizeof(float*));
+  
+  for(i=0;i<omp_get_max_threads();i++)
+      _kernel[i] = malloc(numelements*sizeof(float));
+
 
   result = malloc(sizes[0]*sizes[1]*sizes[2]*sizeof(*result));
 
+  #pragma omp parallel for
   for (i=margin;i<sizes[0]-margin;i++)
+  {
+    int j,k;
+    float *kernel=_kernel[omp_get_thread_num()];
     for (j=margin;j<sizes[1]-margin;j++)
-      for (k=margin;k<sizes[2]-margin;k++){
+      for (k=margin;k<sizes[2]-margin;k++)
+      {
+        int ii,jj,kk,e,index,kindex;
         index = i*sizes[2]*sizes[1] + j*sizes[2] + k;
         e=0;
         for (ii=-margin;ii<=margin;ii++)
@@ -118,15 +137,25 @@ int median_filter(float *volume, int *sizes, int filtersize){
         qsort(kernel,e,sizeof(float),cmp_float);
         result[index]=kernel[numelements/2];
       }
-
+  }
+  
+  #pragma omp parallel for
   for (i=margin;i<sizes[0]-margin;i++)
+  {
+    int j,k;
     for (j=margin;j<sizes[1]-margin;j++)
-      for (k=margin;k<sizes[2]-margin;k++){
+      for (k=margin;k<sizes[2]-margin;k++)
+      {
+        int index;
         index = i*sizes[2]*sizes[1] + j*sizes[2] + k;
         volume[index] = result[index];
       }
+  }
   
-  free(kernel);
+  for(i=0;i<omp_get_max_threads();i++)
+      free(_kernel[i]);
+  
+  free(_kernel);
   free(result);
   
   return STATUS_OK;
