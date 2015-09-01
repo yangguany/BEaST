@@ -76,16 +76,7 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
   float  **_PatchImg  =(float **) malloc(omp_get_max_threads()*sizeof(float*));
   float  **_PatchTemp =(float **) malloc(omp_get_max_threads()*sizeof(float*));
   
-  printf("Allocating temp variables for %d threads\n",omp_get_max_threads());
-  
-  for(i=0;i<omp_get_max_threads();i++)
-  {
-    _PatchImg[i] =(float*) malloc((2*f+1)*(2*f+1)*(2*f+1)*sizeof(float));
-    _PatchTemp[i]=(float*) malloc((2*f+1)*(2*f+1)*(2*f+1)*sizeof(float));
-    fprintf(stderr, "%d %lx %lx\n",i,(long unsigned int)_PatchImg[i],(long unsigned int)_PatchTemp[i]);
-  }
-  
-  
+
   fprintf(stderr,"Patch size: %d\nSearch area: %d\nBeta: %f\nThreshold: %f\nSelection: %d\n",sizepatch,searcharea,beta,threshold,librarysize);
   
   ndim = 3;
@@ -101,6 +92,13 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
   sadims = sadims * librarysize;
 
   /* allocate memory */
+  for(i=0;i<omp_get_max_threads();i++)
+  {
+    _PatchImg[i] =(float*) malloc((2*f+1)*(2*f+1)*(2*f+1)*sizeof(float));
+    _PatchTemp[i]=(float*) malloc((2*f+1)*(2*f+1)*(2*f+1)*sizeof(float));
+  }
+  
+  
   MeansSubj = (float *)calloc(volumesize,sizeof(*MeansSubj));
   VarsSubj =  (float *)calloc(volumesize,sizeof(*VarsSubj));
   localmask = (float *)calloc(volumesize,sizeof(*localmask));
@@ -135,10 +133,9 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
       float *PatchImg, *PatchTemp;
       data_t  *tab;
       
-      /*if( omp_get_thread_num()==0 )
-        fprintf(stderr,"\b\b\b\b\b\b\b\b\b%3d / %3d", i*omp_get_num_threads()+1, dims[0]);*/
+      if( omp_get_thread_num()==0 )
+        fprintf(stderr,"\b\b\b\b\b\b\b\b\b%3d / %3d", i*omp_get_num_threads()+1, dims[0]);
       /*use thread-specific temp memory*/
-      fprintf(stderr,"%3d\t", i);
       
       tab          = _tab      [omp_get_thread_num()];
       PatchImg     = _PatchImg [omp_get_thread_num()];
@@ -158,7 +155,7 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
             float average=0;
             float totalweight=0;
             int count = 0;
-            float minidist = 1e10; /*FLT_MAX;*/
+            float minidist = FLT_MAX; /*FLT_MAX;*/
             float TMean,TVar;
             
             ExtractPatch(subject, PatchTemp, i, j, k, f, dims[0], dims[1], dims[2]);
