@@ -117,32 +117,37 @@ void ExtractPatch4D(float* ima, float* Patch, int x,int y, int z, int t,int size
 {
     
     int i,j,k;
-    int ni1, nj1, nk1;
     int Psize =  2*size +1;
+    /*find the image in the stack*/
+    float *_frame=ima+t*(sx*sy*sz);
     
-    for(i=0;i<(2*size+1)*(2*size+1)*(2*size+1);i++)
+    for(i=0;i<Psize*Psize*Psize;i++)
         Patch[i]=0.0;
     
-   
-    for(i=-size;i<=size;i++)
+    /*center */
+    x-=size;
+    y-=size;
+    z-=size;
+    
+    for(i=0;i<Psize;i++)
       {
-        for(j=-size;j<=size;j++)
+        int ni1=x+i;
+        if(ni1<0) ni1=-ni1;
+        else if(ni1>=sx) ni1=2*sx-ni1-1;
+        for(j=0;j<Psize;j++)
         {
-            for(k=-size;k<=size;k++)
+            int nj1=y+j;
+            if(nj1<0) nj1=-nj1;
+            else if(nj1>=sy) nj1=2*sy-nj1-1;
+            
+            for(k=0;k<Psize;k++)
             {
-                ni1=x+i;
-                nj1=y+j;
-                nk1=z+k;
+                int nk1=z+k;
                 
-                if(ni1<0) ni1=-ni1;
-                if(nj1<0) nj1=-nj1;
                 if(nk1<0) nk1=-nk1;
+                else if(nk1>=sz) nk1=2*sz-nk1-1;
                 
-                if(ni1>=sx) ni1=2*sx-ni1-1;
-                if(nj1>=sy) nj1=2*sy-nj1-1;
-                if(nk1>=sz) nk1=2*sz-nk1-1;
-                
-                Patch[(i+size)*(Psize*Psize)+((j+size)*Psize)+(k+size)]=ima[t*(sx*sy*sz)+ni1*(sz*sy)+(nj1*sz)+nk1];
+                Patch[i*Psize*Psize+j*Psize+k]=_frame[ni1*sz*sy+nj1*sz+nk1];
             }
         }
     }
