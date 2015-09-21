@@ -268,7 +268,7 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
       v=v+1;
       count=0;
       
-      #pragma parallel for reduction(+:count)
+      #pragma omp parallel for reduction(+:count)
       for(i=0;i<dims[0];i++)
       {
         int j,k;
