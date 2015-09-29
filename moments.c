@@ -33,7 +33,9 @@ void ComputeFirstMoment(float* ima, float* means, const int* dims, int f, float 
   float vmin=FLT_MAX;
   float vmax=-FLT_MAX;
   
+#if _OPENMP >=  201107
   #pragma omp parallel for reduction(max:vmax) reduction(min:vmin)
+#endif  
   for(i=0;i<dims[0];i++)
   {
     int j,k;
@@ -94,8 +96,10 @@ void ComputeSecondMoment(float* ima, float* means, float* variance, const int* d
 {
   int i;
   float vmin=FLT_MAX,vmax=-FLT_MAX;
-  
+
+#if _OPENMP >=  201107
   #pragma omp parallel for reduction(max:vmax) reduction(min:vmin)
+#endif  
   for(i=0;i<dims[0];i++)
   {
     int j,k;
