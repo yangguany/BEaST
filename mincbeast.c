@@ -37,12 +37,17 @@
 #include "beast.h"
 #include "label.h"
 
-const char LICENSE[]="Copyright (C) 2011\tSimon Fristed Eskildsen, Vladimir Fonov, \n\
+const char LICENSE[]="Copyright (C) 2011\tSimon Fristed Eskildsen, Vladimir S. Fonov, \n\
 \t\t\tPierrick Coupe, Jose V. Manjon\n\n\
 This program comes with ABSOLUTELY NO WARRANTY; for details type 'cat COPYING'. \n\
 This is free software, and you are welcome to redistribute it under certain\n\
 conditions; type 'cat COPYING' for details.\n\
 ";
+
+const char REFERENCE[]="Reference: \n\tEskildsen SF, Coupe P, Fonov V, Manjon JV, Leung KK,\n\tGuizard N, Wassef SN, Ostergaard LR, Collins DL;\n\tAlzheimer's Disease Neuroimaging Initiative.\n\
+\tBEaST: brain extraction based on nonlocal segmentation technique.\n\
+\tNeuroimage. 2012 Feb 1;59(3):2362-73.\n\
+\thttp://dx.doi.org/10.1016/j.neuroimage.2011.09.012\n\n";
 
 #ifdef MT_USE_OPENMP
     #include <omp.h>
@@ -207,11 +212,7 @@ int main(int argc, char  *argv[] )
   };
   
   fprintf(stderr,"\nmincbeast --\t\tan implementation of BEaST (Brain Extraction\n\t\t\tusing non-local Segmentation Technique) version %s\n\n",PACKAGE_VERSION);
-  fprintf(stderr,"Reference: \n\tEskildsen SF, Coupe P, Fonov V, Manjon JV, Leung KK,\n\tGuizard N, Wassef SN, Ostergaard LR, Collins DL;\n\tAlzheimer's Disease Neuroimaging Initiative.\n\
-\tBEaST: brain extraction based on nonlocal segmentation technique.\n\
-\tNeuroimage. 2012 Feb 1;59(3):2362-73.\n\
-\thttp://dx.doi.org/10.1016/j.neuroimage.2011.09.012\n\n");
-
+  
 #ifdef MT_USE_OPENMP
   fprintf(stderr,"Using OpenMP, max number of threads=%d\n",omp_get_max_threads());
 #endif
@@ -227,6 +228,7 @@ int main(int argc, char  *argv[] )
   /* Get arguments */
   if (ParseArgv(&argc, argv, argTable, 0) || (argc < 4)) {
     fprintf(stderr,LICENSE);
+    fprintf(stderr,REFERENCE);
     fprintf(stderr,
             "\nUsage: %s [options] <library dir> <input> <output>\n",
             argv[0]);
