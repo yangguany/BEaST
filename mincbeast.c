@@ -207,6 +207,10 @@ int main(int argc, char  *argv[] )
   };
   
   fprintf(stderr,"\nmincbeast --\t\tan implementation of BEaST (Brain Extraction\n\t\t\tusing non-local Segmentation Technique) version %s\n\n",PACKAGE_VERSION);
+  fprintf(stderr,"Reference: \n\tEskildsen SF, Coupe P, Fonov V, Manjon JV, Leung KK,\n\tGuizard N, Wassef SN, Ostergaard LR, Collins DL;\n\tAlzheimer's Disease Neuroimaging Initiative.\n\
+\tBEaST: brain extraction based on nonlocal segmentation technique.\n\
+\tNeuroimage. 2012 Feb 1;59(3):2362-73.\n\
+\thttp://dx.doi.org/10.1016/j.neuroimage.2011.09.012\n\n");
 
 #ifdef MT_USE_OPENMP
   fprintf(stderr,"Using OpenMP, max number of threads=%d\n",omp_get_max_threads());
