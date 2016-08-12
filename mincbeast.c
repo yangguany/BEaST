@@ -59,7 +59,7 @@ const char REFERENCE[]="Reference: \n\tEskildsen SF, Coupe P, Fonov V, Manjon JV
 
 int main(int argc, char  *argv[] )
 {
-  char *input_file,*output_file,*libdir, history_label[1024];
+  char *input_file,*output_file,*libdir, *history_label;
   char imagelist[FILENAMELENGTH], masklist[FILENAMELENGTH],meanlist[FILENAMELENGTH],varlist[FILENAMELENGTH];
   char ***images, ***masks,***means,***vars;
   int num_images,i,sizes[3][5],tmpsizes[5],volumesize,*selection,steps=3,filled=0;
@@ -220,10 +220,7 @@ int main(int argc, char  *argv[] )
   /* Get the time, overwriting newline */
   timer = time(NULL);
 
-  /* make minc-type stamp*/
-  sprintf(history_label,"%s>>>%s",ctime(&timer),argv[0]);
-  for (i=1; i<argc; i++)
-    sprintf(history_label,"%s %s",history_label,argv[i]);
+  history_label=create_minc_timestamp(argc,argv);
 
   /* Get arguments */
   if (ParseArgv(&argc, argv, argTable, 0) || (argc < 4)) {
@@ -234,7 +231,7 @@ int main(int argc, char  *argv[] )
             argv[0]);
     fprintf(stderr,"       %s -help\n\n", argv[0]);
 
-    exit(STATUS_ERR);
+    return STATUS_ERR;
   }
 
   libdir = argv[argc-3];
@@ -632,6 +629,7 @@ int main(int argc, char  *argv[] )
   free_meta(meta[1]);
   
   free(meta);
-
+  free(history_label);
+  
   return STATUS_OK;
 }

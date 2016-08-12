@@ -99,4 +99,7 @@ int read_list(char *filename, char **list,char *basedir);
 image_metadata * read_volume(char *filename, float **data, int *sizes);
 int write_volume_generic(char *filename, float *data, image_metadata *meta,VIO_BOOL binary_mask );
 
+
+char* create_minc_timestamp(int argc,char *argv[]);
+
 #endif
