@@ -580,7 +580,11 @@ int main(int argc, char  *argv[] )
 
 
   if (count_file!=NULL) {
-    write_volume_generic(count_file, patchcount[targetscale], meta[targetscale],FALSE);
+    if(write_volume_generic(count_file, patchcount[targetscale], meta[targetscale],FALSE))
+    {
+      fprintf(stderr,"Can't save output to %s\n",count_file);
+      return STATUS_ERR;
+    }
   }
 
   if(targetscale!=0 && same_res) { /* need to upsample final output */

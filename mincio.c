@@ -88,6 +88,7 @@ int write_volume(char *name, VIO_Volume vol, float *data){
 int write_minc(char *filename, float *image, image_metadata *meta,VIO_BOOL binary_mask){
   VIO_Volume volume;
   int i,j,k,index;
+  int err=VIO_OK;
   float min=FLT_MAX,max=FLT_MIN;
   VIO_Real dummy[3];
 
@@ -100,7 +101,10 @@ int write_minc(char *filename, float *image, image_metadata *meta,VIO_BOOL binar
     volume = create_volume(3,NULL,NC_FLOAT,FALSE,FLT_MIN,FLT_MAX);
   
   if(!volume)
+  {
+    fprintf(stderr,"Error in volume creation\n");
     return STATUS_ERR;
+  }
   
   if(!binary_mask)
   {
@@ -133,13 +137,13 @@ int write_minc(char *filename, float *image, image_metadata *meta,VIO_BOOL binar
   get_volume(image, volume, meta->length);
 
   if(!binary_mask)
-    output_volume( filename, NC_FLOAT,FALSE,min, max,volume,meta->history,(minc_output_options *)NULL);
+    err=output_volume( filename, NC_FLOAT,FALSE,min, max,volume,meta->history,(minc_output_options *)NULL);
   else
-    output_volume( filename, NC_BYTE,FALSE,0, 1.0,volume,meta->history,(minc_output_options *)NULL);
+    err=output_volume( filename, NC_BYTE,FALSE,0, 1.0,volume,meta->history,(minc_output_options *)NULL);
     
   delete_volume(volume);
-
-  return STATUS_OK;
+  
+  return err==VIO_OK?STATUS_OK:STATUS_ERR;
 }
 
 image_metadata * read_minc(char *filename, float **image, int *sizes){
