@@ -1,3 +1,4 @@
+#! /bin/bash
 #  beast_normalize
 #
 #  Copyright 2011  Simon Fristed Eskildsen, Vladimir Fonov,
@@ -21,7 +22,6 @@
 #  For questions and feedback, please contact:
 #  Simon Fristed Eskildsen <eskild@gmail.com> 
 
-#!/bin/bash
 set -e
 num_args=3
 usage_string="<input mnc> <output mnc> <output xfm>"

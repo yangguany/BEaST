@@ -1,3 +1,4 @@
+#! /bin/bash
 #  beast_preparelib
 #
 #  Copyright 2011  Simon Fristed Eskildsen, Vladimir Fonov,
@@ -21,7 +22,6 @@
 #  For questions and feedback, please contact:
 #  Simon Fristed Eskildsen <eskild@gmail.com> 
 
-#!/bin/bash
 num_args=2
 usage_string="<ADNI root> <BEaST library dir>"
 options_string="\t-flip"
