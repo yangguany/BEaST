@@ -47,26 +47,18 @@
     #define omp_get_max_threads() 1
 #endif
 
-/*Can be used to store the distance and the location*/
-/*Some compilation issues can occur here, use typedef strcut with window*/
-typedef struct {
-  double dist;
-  int x;
-  int y;
-  int z;
-  int t;
-} data_t;
-
 
 float nlmsegSparse4D(float *subject, float *imagedata, 
-                    float *maskdata, float *meandata, float *vardata, 
-                    float *mask, 
-                    int sizepatch, int searcharea, float beta, float threshold, 
-                    int dims[3],  int librarysize, float *SegSubject, float *PatchCount)
+                     float *maskdata, float *meandata, float *vardata, 
+                     float *mask, 
+                     int sizepatch, int searcharea, float beta, float threshold, 
+                     int dims[3],  int librarysize, float *SegSubject, float *PatchCount)
 {    
-  float *MeansSubj, *VarsSubj, *localmask;
+  float *restrict MeansSubj, *restrict VarsSubj, *restrict localmask;
   int i,v,f,ndim;
   float min,max;
+  int patch_volume;
+  int patch_center_voxel;
   
   int sadims,volumesize,index;
   int mincount=MINCOUNT;
@@ -76,9 +68,11 @@ float nlmsegSparse4D(float *subject, float *imagedata,
   time_t time1,time2;
   
   /*per thread temp storage*/
-  data_t **_tab       =(data_t **)malloc(omp_get_max_threads()*sizeof(data_t*));
+  
   float  **_PatchImg  =(float **) malloc(omp_get_max_threads()*sizeof(float*));
+  float  **_PatchMask =(float **) malloc(omp_get_max_threads()*sizeof(float*));
   float  **_PatchTemp =(float **) malloc(omp_get_max_threads()*sizeof(float*));
+  float  **_PatchDistance=(float **) malloc(omp_get_max_threads()*sizeof(float*));
   
 
   fprintf(stderr,"Patch size: %d\nSearch area: %d\nBeta: %f\nThreshold: %f\nSelection: %d\n",sizepatch,searcharea,beta,threshold,librarysize);
@@ -88,7 +82,11 @@ float nlmsegSparse4D(float *subject, float *imagedata,
   
   /*Patch radius*/
   f = sizepatch;
-  
+  /*volume of patch*/
+  patch_volume=(2*f+1)*(2*f+1)*(2*f+1);
+  /*index of patch central voxel*/
+  patch_center_voxel=f+f*(2*f+1)+f*(2*f+1)*(2*f+1);
+
   /*Search Area radius*/
   v = searcharea;
   
@@ -98,7 +96,6 @@ float nlmsegSparse4D(float *subject, float *imagedata,
   /* allocate memory for multithreading operation*/
   for(i=0;i<omp_get_max_threads();i++)
   {
-    _PatchImg[i] =(float*) malloc( (2*f+1)*(2*f+1)*(2*f+1)*sizeof(float) );
     _PatchTemp[i]=(float*) malloc( (2*f+1)*(2*f+1)*(2*f+1)*sizeof(float) );
   }
   
@@ -121,32 +118,31 @@ float nlmsegSparse4D(float *subject, float *imagedata,
   time1=time(NULL);
   
   do {
+    
     fprintf(stderr," (%d sec)\nSegmenting      ",(int)(time1-time2));
     time2=time(NULL);
     notfinished=0;
     
     for(i=0;i<omp_get_max_threads();i++)
     {
-      _tab[i]=(data_t*)malloc(sadims*sizeof(data_t));
+      _PatchImg[i]  =(float*) malloc( patch_volume*sizeof(float)*sadims );
+      _PatchMask[i] =(float*) malloc( patch_volume*sizeof(float)*sadims );
+      _PatchDistance[i]=(float*) malloc( sizeof(float)*sadims );
     }
     
-    #pragma omp parallel for shared(_tab,_PatchImg,_PatchTemp) reduction(+:notfinished)
+    #pragma omp parallel for shared(_PatchImg,_PatchTemp,_PatchDistance,_PatchMask) reduction(+:notfinished)
     for(i=0;i<dims[0];i++)
     { /*start parallel section*/
       int j,k;
       
-      float * restrict PatchImg;
-      float * restrict PatchTemp;
-      
-      data_t  *restrict tab;
+      /*use thread-specific temp memory*/
+      float * restrict PatchImg= _PatchImg[omp_get_thread_num()];
+      float * restrict PatchMask=_PatchMask[omp_get_thread_num()];;
+      float * restrict PatchTemp=_PatchTemp[omp_get_thread_num()];
+      float * restrict PatchDistance= _PatchDistance[omp_get_thread_num()];
       
       if( omp_get_thread_num()==0 )
         fprintf(stderr,"\b\b\b\b\b\b\b\b\b%3d / %3d", i*omp_get_num_threads()+1, dims[0]);
-      /*use thread-specific temp memory*/
-      
-      tab          = _tab      [omp_get_thread_num()];
-      PatchImg     = _PatchImg [omp_get_thread_num()];
-      PatchTemp    = _PatchTemp[omp_get_thread_num()];
       
       for(j=0;j<dims[1];j++)
       {
@@ -159,16 +155,17 @@ float nlmsegSparse4D(float *subject, float *imagedata,
           {
             int ii,jj,kk;
             float proba=0.;
-            float average=0;
             float totalweight=0;
             int   count = 0;
-            float minidist = FLT_MAX; /*FLT_MAX;*/
+            
             float TMean,TVar;
             
             ExtractPatch(subject, PatchTemp, i, j, k, f, dims[0], dims[1], dims[2]);
             
             TMean = MeansSubj[index];
             TVar =  VarsSubj [index];
+            
+            /*TODO:apply patch-normalization using Mean and var*/
             
             /* go through the search space  */
             for(ii=-v;ii<=v;ii++)
@@ -182,7 +179,8 @@ float nlmsegSparse4D(float *subject, float *imagedata,
                   nj=j+jj;
                   nk=k+kk;
                   
-                  if((ni>=0) && (nj>=0) && (nk>=0) && (ni<dims[0]) && (nj<dims[1]) && (nk<dims[2]))
+                  if( (ni>=0) && (nj>=0) && (nk>=0) && 
+                      (ni<dims[0]) && (nj<dims[1]) && (nk<dims[2]) )
                   {
                     int t;
                     for(t=0;t<librarysize;t++)
@@ -198,22 +196,11 @@ float nlmsegSparse4D(float *subject, float *imagedata,
 
                       if(th > threshold)
                       {
-                        float d;
-                        data_t storage;
+                        ExtractPatch4D(imagedata, PatchImg+ count*patch_volume ,ni,nj,nk, t, f, dims[0], dims[1], dims[2]);
+                        ExtractPatch4D(maskdata,  PatchMask+count*patch_volume ,ni,nj,nk, t, f, dims[0], dims[1], dims[2]);
                         
-                        ExtractPatch4D(imagedata, PatchImg ,ni,nj,nk, t,f, dims[0], dims[1], dims[2]);
+                        /*TODO:apply patch-normalization using Mean and Var here?*/
                         
-                        d =  SSDPatch(PatchImg, PatchTemp, f);
-                        
-                        if (d < minidist) minidist = d;
-                        
-                        storage.dist  = d;
-                        storage.z = ni;
-                        storage.y = nj;
-                        storage.x = nk;
-                        storage.t = t;
-                          
-                        tab[count] = storage;
                         count ++;
                         
                       }
@@ -225,38 +212,39 @@ float nlmsegSparse4D(float *subject, float *imagedata,
             
             /* require a minimum number of selected patches  */
             if (count >= mincount) {
-              int realcount=0;
-              int p=0;
-              /* Sort the distance*/
-              /*This can be removed according to the chosen strategy*/
-              /*qsort (tab, count, sizeof *tab, cmp);*/
-              
-              /*You can use the closest Patches (i.e. the 'lim' closest ones) or all the preselected patches (count)*/
-              //lim = count; /*in this case, you take all the preselected patches into account*/
-              
-              if ( minidist<=epsi ) minidist = epsi; /*to avoid division by zero*/
+                float average=0.0;
+                int realcount=0;
+                int p;
                 
-                while (p < count)
+                /*TODO: replace with sparse code*/
+                float minidist = FLT_MAX; /*FLT_MAX;*/
+                for(p=0;p<count;p++)
                 {
-                  data_t storage = tab[p];
-                  float w = exp(- ((storage.dist)/(beta*(minidist)) ) ); /*The smoothing parameter is the minimal distance*/
-                  
-                  if (w>0.0)  
-                  {
-                    average  = average + maskdata[(storage.t*volumesize)+(storage.z*(dims[2]*dims[1]))+(storage.y*dims[2])+storage.x]*w;			      
-                    totalweight = totalweight + w;
-                    realcount++;
-                  }
-                  
-                  p++;
-                } // while
+                    /*calculate distances*/
+                    float d =  SSDPatch(PatchImg+p*patch_volume, PatchTemp, f);
+                    if (d < minidist) minidist = d;
+                    PatchDistance[p]=d;
+                }
+                
+                if ( minidist<=epsi ) minidist = epsi; /*to avoid division by zero*/
+                
+                for(p=0;p<count;p++)
+                {
+                    float w = exp(- ((PatchDistance[p])/(beta*(minidist)) ) ); /*The smoothing parameter is the minimal distance*/
+                    
+                    if (w>0.0)  
+                    {
+                        average+= PatchMask[p*patch_volume+patch_center_voxel]*w;
+                        totalweight += w;
+                        realcount++;
+                    }
+                } 
                 
                 /* We compute the probability */
                 proba = average / totalweight;
                 
                 SegSubject[index] = proba;
                 PatchCount[index] = realcount;
-                
             } else {
               /* Not enough similar patches */
               notfinished+=1;
@@ -303,24 +291,28 @@ float nlmsegSparse4D(float *subject, float *imagedata,
       }
       
       fprintf(stderr," (redoing %d voxels) t=%f, min=%d ",count, threshold, mincount);
-      sadims = pow(2*v+1,ndim);
+      sadims = pow( 2*v+1,ndim);
       sadims = sadims * librarysize;
     }
     
     for(i=0;i<omp_get_max_threads();i++)
-      free(_tab[i]);
+    {
+        free(_PatchImg[i]);
+        free(_PatchDistance[i]);
+    }
 
   } while (notfinished);
 
   for(i=0;i<omp_get_max_threads();i++)
   {
-    free(_PatchImg[i]);
     free(_PatchTemp[i]);
+    
   }
   
   free(_PatchImg);
   free(_PatchTemp);
-  free(_tab);
+  free(_PatchDistance);
+  
   
   fprintf(stderr," done (%d sec, t=%f, min=%d)\n",(int)(time1-time2), threshold, mincount);
   

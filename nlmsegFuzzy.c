@@ -64,7 +64,9 @@ float nlmsegFuzzy4D(float *subject, float *imagedata,
                     int sizepatch, int searcharea, float beta, float threshold, 
                     int dims[3],  int librarysize, float *SegSubject, float *PatchCount)
 {    
-  float *MeansSubj, *VarsSubj, *localmask;
+  float *MeansSubj;
+  float *VarsSubj;
+  float *localmask;
   int i,v,f,ndim;
   float min,max;
   

@@ -113,14 +113,15 @@ void ExtractPatch(float* ima, float* Patch, int x, int y, int z, int size, int s
 }
 
 
-void ExtractPatch4D(float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz)
+void ExtractPatch4D(float* restrict ima, float* restrict Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz)
 {
     
     int i,j,k;
-    int Psize =  2*size +1;
+    int Psize = 2*size +1;
     /*find the image in the stack*/
-    float *_frame=ima+t*(sx*sy*sz);
+    float *restrict _frame=ima+t*(sx*sy*sz);
     
+    /*TODO: remove?*/
     for(i=0;i<Psize*Psize*Psize;i++)
         Patch[i]=0.0;
     
@@ -130,15 +131,17 @@ void ExtractPatch4D(float* ima, float* Patch, int x,int y, int z, int t,int size
     z-=size;
     
     for(i=0;i<Psize;i++)
-      {
+    {
         int ni1=x+i;
         if(ni1<0) ni1=-ni1;
         else if(ni1>=sx) ni1=2*sx-ni1-1;
         for(j=0;j<Psize;j++)
         {
             int nj1=y+j;
-            if(nj1<0) nj1=-nj1;
-            else if(nj1>=sy) nj1=2*sy-nj1-1;
+            if(nj1<0) 
+                nj1=-nj1;
+            else if(nj1>=sy) 
+                nj1=2*sy-nj1-1;
             
             for(k=0;k<Psize;k++)
             {

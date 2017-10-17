@@ -374,7 +374,9 @@ int main(int argc, char  *argv[] )
   fprintf(stderr,"%d scale steps:\n",scalesteps);
 
   for (i=initialscale; i>=targetscale; i--) {
-    fprintf(stderr,"%d %d %d %4.2lf %4.2lf %4.2lf %d\n",configuration[i].voxelsize,configuration[i].patchsize,configuration[i].searcharea,configuration[i].alpha,configuration[i].beta,configuration[i].threshold,configuration[i].selectionsize);
+    fprintf(stderr,"%d %d %d %4.2lf %4.2lf %4.2lf %d\n",
+            configuration[i].voxelsize, configuration[i].patchsize, configuration[i].searcharea,
+            configuration[i].alpha, configuration[i].beta, configuration[i].threshold, configuration[i].selectionsize);
   }
 
   images = alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
@@ -450,7 +452,8 @@ int main(int argc, char  *argv[] )
   if (verbose) fprintf(stderr,"Initial voxel size: %d\nTarget voxel size: %d\n", scales[initialscale], scales[targetscale]);
 
   for (scale=initialscale; scale>=targetscale; scale--) {
-
+    int selection_size=configuration[scale].selectionsize;
+    
     selection = (int *)malloc(configuration[scale].selectionsize*sizeof(*selection));
     pre_selection(subject[scale], mask[scale], images[scale], sizes[scale], num_images, configuration[scale].selectionsize, selection, selection_file,verbose);
 
@@ -546,17 +549,16 @@ int main(int argc, char  *argv[] )
         flip_data(meandata+i*scaledvolumesize,  meandata+(configuration[scale].selectionsize+i)*scaledvolumesize,  sizes[scale]);
         flip_data(vardata+i*scaledvolumesize,   vardata+(configuration[scale].selectionsize+i)*scaledvolumesize,   sizes[scale]);
       }
-
+      selection_size=configuration[scale].selectionsize*2;
     }
     if(use_sparse) {
-        
         max = nlmsegSparse4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
-                        configuration[scale].threshold, sizes[scale], configuration[scale].selectionsize*2, segsubject[scale], patchcount[scale]);
+                        configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale]);
     }  else {
         max = nlmsegFuzzy4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
-                        configuration[scale].threshold, sizes[scale], configuration[scale].selectionsize*2, segsubject[scale], patchcount[scale]);
+                        configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale]);
     }
 
     free(imagedata);
