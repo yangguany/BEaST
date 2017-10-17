@@ -48,6 +48,12 @@
 #endif
 
 
+#ifdef USE_SPAMS
+
+#include <spams.h>
+
+
+
 float nlmsegSparse4D(float *subject, float *imagedata, 
                      float *maskdata, float *meandata, float *vardata, 
                      float *mask, 
@@ -67,6 +73,9 @@ float nlmsegSparse4D(float *subject, float *imagedata,
   double epsi = 0.0001;
   time_t time1,time2;
   
+  float lambda2=0.15;
+  float constraint=1.0;
+  
   /*per thread temp storage*/
   
   float  **_PatchImg  =(float **) malloc(omp_get_max_threads()*sizeof(float*));
@@ -74,7 +83,7 @@ float nlmsegSparse4D(float *subject, float *imagedata,
   float  **_PatchTemp =(float **) malloc(omp_get_max_threads()*sizeof(float*));
   float  **_PatchDistance=(float **) malloc(omp_get_max_threads()*sizeof(float*));
   
-
+  fprintf(stderr,"Running sparse segmentation\n");
   fprintf(stderr,"Patch size: %d\nSearch area: %d\nBeta: %f\nThreshold: %f\nSelection: %d\n",sizepatch,searcharea,beta,threshold,librarysize);
   
   ndim = 3;
@@ -216,35 +225,43 @@ float nlmsegSparse4D(float *subject, float *imagedata,
                 int realcount=0;
                 int p;
                 
+                SpMatrix<float> alpha;
+                Matrix<float> M(PatchImg,   patch_volume, count);
+                Matrix<float> X(PatchTemp,  patch_volume, 1 );
+                /*TEST*/
+                lasso<float>(M, X, alpha, 
+                             count, constraint, lambda2, PENALTY,true,false);
+                
                 /*TODO: replace with sparse code*/
                 float minidist = FLT_MAX; /*FLT_MAX;*/
-                for(p=0;p<count;p++)
+//                 M.print("M");
+//                 X.print("X");
+                //alpha.print("alpha");
+                //printf("%d\t",alpha.nnz());
+                if(alpha.nnz()>0)
                 {
-                    /*calculate distances*/
-                    float d =  SSDPatch(PatchImg+p*patch_volume, PatchTemp, f);
-                    if (d < minidist) minidist = d;
-                    PatchDistance[p]=d;
-                }
-                
-                if ( minidist<=epsi ) minidist = epsi; /*to avoid division by zero*/
-                
-                for(p=0;p<count;p++)
-                {
-                    float w = exp(- ((PatchDistance[p])/(beta*(minidist)) ) ); /*The smoothing parameter is the minimal distance*/
-                    
-                    if (w>0.0)  
+                    for(p=0;p<count;p++)
                     {
-                        average+= PatchMask[p*patch_volume+patch_center_voxel]*w;
-                        totalweight += w;
-                        realcount++;
-                    }
-                } 
-                
-                /* We compute the probability */
-                proba = average / totalweight;
-                
-                SegSubject[index] = proba;
-                PatchCount[index] = realcount;
+                        float w = alpha[p];
+                        
+                        if (w>0.0)  
+                        {
+                            average+= PatchMask[p*patch_volume+patch_center_voxel]*w;
+                            totalweight += w;
+                            realcount++;
+                        }
+                    } 
+                    
+                    /* We compute the probability */
+                    proba = average / totalweight;
+                    
+                    SegSubject[index] = proba;
+                    PatchCount[index] = realcount;
+                } else {
+                    /* Not enough similar patches */
+                    notfinished+=1;
+                    SegSubject[index] = -1;
+                }
             } else {
               /* Not enough similar patches */
               notfinished+=1;
@@ -323,4 +340,15 @@ float nlmsegSparse4D(float *subject, float *imagedata,
   return max;
 }
 
+#else
+float nlmsegSparse4D(float *subject, float *imagedata, 
+                     float *maskdata, float *meandata, float *vardata, 
+                     float *mask, 
+                     int sizepatch, int searcharea, float beta, float threshold, 
+                     int dims[3],  int librarysize, float *SegSubject, float *PatchCount)
+{
+    fprintf(stderr,"Compiled without SPAMS!\n");
+    return 0.0;
+}
+#endif //USE_SPAMS
 

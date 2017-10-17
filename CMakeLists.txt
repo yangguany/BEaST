@@ -29,8 +29,23 @@ IF(NOT MINC_TOOLKIT_BUILD)
   ENDIF(USE_NIFTI)
 
   OPTION(MT_USE_OPENMP  "Use OpenMP multi-threading" OFF)
+  FIND_PACKAGE(OpenBLAS )
 
 ENDIF(NOT MINC_TOOLKIT_BUILD)
+
+SET(OpenBLAS_INCLUDE_DIR ${OpenBLAS_INCLUDE_DIRS} CACHE PATH "OpenBLAS Include directory")
+SET(OpenBLAS_LIBRARY     ${OpenBLAS_LIBRARIES}    CACHE PATH "OpenBLAS library ")
+
+IF(OpenBLAS_FOUND OR OpenBLAS_LIBRARY)
+  SET(HAVE_OPENBLAS ON) 
+  SET(HAVE_SPAMS ON) 
+  ADD_DEFINITIONS(-DHAVE_OPENBLAS -DUSE_SPAMS)
+  SET(HAVE_OPENBLAS ON)
+ELSE(OpenBLAS_FOUND OR OpenBLAS_LIBRARY)
+ SET(HAVE_OPENBLAS OFF)
+ SET(HAVE_SPAMS OFF)
+ message("Building BEAST without SPAMS")
+ENDIF(OpenBLAS_FOUND OR OpenBLAS_LIBRARY) 
 
 
 SET(PACKAGE "mincbeast")
@@ -79,6 +94,7 @@ if (MT_USE_OPENMP)
         set(CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}   ${OpenMP_C_FLAGS}")
         set(CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+        ADD_DEFINITIONS(-D_OPENMP)
     else()
         message(WARNING "OpenMP NOT found")
     endif()
@@ -88,35 +104,39 @@ endif()
 # others
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
-INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/include 
-    ${CMAKE_SOURCE_DIR}/spams-2.6.1 
-    ${CMAKE_SOURCE_DIR}/spams-2.6.1/linalg
-    ${CMAKE_SOURCE_DIR}/spams-2.6.1/decomp
-    ${CMAKE_SOURCE_DIR}/spams-2.6.1/prox
-    )
+IF(HAVE_SPAMS)
+    INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/include 
+        ${CMAKE_SOURCE_DIR}/spams-2.6.1 
+        ${CMAKE_SOURCE_DIR}/spams-2.6.1/spams/linalg
+        ${CMAKE_SOURCE_DIR}/spams-2.6.1/spams/decomp
+        ${CMAKE_SOURCE_DIR}/spams-2.6.1/spams/prox
+        ${CMAKE_SOURCE_DIR}/spams-2.6.1/spams/dictLearn/
+        )
 
-SET(SPAMS_SRC
-    spams-2.6.1/spams/linalg/misc.h
-    spams-2.6.1/spams/linalg/cblas_defvar.h
-    spams-2.6.1/spams/linalg/cblas_alt_template.h
-    spams-2.6.1/spams/linalg/utils.h
-    spams-2.6.1/spams/linalg/linalg.h
-    spams-2.6.1/spams/linalg/mexutils.h
-    spams-2.6.1/spams/linalg/list.h
-    spams-2.6.1/spams/linalg/cblas_template.h
-    spams-2.6.1/spams/decomp/decomp.h
-    spams-2.6.1/spams/decomp/lsqsplx.h
-    spams-2.6.1/spams/decomp/projsplx.h
-    spams-2.6.1/spams/dictLearn/dicts.h
-    spams-2.6.1/spams/dictLearn/arch.h
-    spams-2.6.1/spams/prox/fista.h
-    spams-2.6.1/spams/prox/surrogate.h
-    spams-2.6.1/spams/prox/project.h
-    spams-2.6.1/spams/prox/svm.h
-    spams-2.6.1/spams/prox/mexgrouputils.h
-    spams-2.6.1/spams/prox/groups-graph.h
-    spams-2.6.1/spams.h
-)
+    SET(SPAMS_SRC
+        spams-2.6.1/spams/linalg/misc.h
+        spams-2.6.1/spams/linalg/cblas_defvar.h
+        spams-2.6.1/spams/linalg/cblas_alt_template.h
+        spams-2.6.1/spams/linalg/utils.h
+        spams-2.6.1/spams/linalg/linalg.h
+        spams-2.6.1/spams/linalg/mexutils.h
+        spams-2.6.1/spams/linalg/list.h
+        spams-2.6.1/spams/linalg/cblas_template.h
+        spams-2.6.1/spams/decomp/decomp.h
+        spams-2.6.1/spams/decomp/lsqsplx.h
+        spams-2.6.1/spams/decomp/projsplx.h
+        spams-2.6.1/spams/dictLearn/dicts.h
+        spams-2.6.1/spams/dictLearn/arch.h
+        spams-2.6.1/spams/prox/fista.h
+        spams-2.6.1/spams/prox/surrogate.h
+        spams-2.6.1/spams/prox/project.h
+        spams-2.6.1/spams/prox/svm.h
+        spams-2.6.1/spams/prox/mexgrouputils.h
+        spams-2.6.1/spams/prox/groups-graph.h
+        spams-2.6.1/spams.h
+    )
+    
+ENDIF(HAVE_SPAMS)
 
 SET(BEAST_SRC 
   alloc.cpp
@@ -129,8 +149,12 @@ SET(BEAST_SRC
   nlmsegSparse.cpp
   label.cpp
   ParseArgv.c
-  beast_spams_wrapper.cpp
 )
+
+IF(HAVE_SPAMS)
+    SET(BEAST_SRC ${BEAST_SRC} ${SPAMS_SRC})
+    
+ENDIF(HAVE_SPAMS)
 
 IF(LIBMINC_FOUND)
   INCLUDE( ${LIBMINC_USE_FILE} )
@@ -142,7 +166,7 @@ ENDIF(LIBMINC_FOUND)
 IF(USE_NIFTI)
   ADD_DEFINITIONS( -DHAVE_NIFTI )
   LINK_LIBRARIES(niftiio znz z m)
-  SET(BEAST_SRC ${BEAST_SRC} niftiio.c)
+  SET(BEAST_SRC ${BEAST_SRC} niftiio.cpp)
   LINK_DIRECTORIES(
     "${NIFTI_ROOT}/lib${LIB_SUFFIX}"
   )
@@ -162,6 +186,12 @@ ADD_LIBRARY(beast  STATIC
 )
 
 TARGET_LINK_LIBRARIES(beast ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} )
+
+IF(HAVE_SPAMS)
+  TARGET_LINK_LIBRARIES( beast
+                  ${OpenBLAS_LIBRARY} )
+ENDIF(HAVE_SPAMS)
+
 
 ADD_EXECUTABLE(mincbeast
   mincbeast.cpp

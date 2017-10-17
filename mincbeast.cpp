@@ -212,11 +212,12 @@ int main(int argc, char  *argv[] )
       "-no_positive", ARGV_CONSTANT, (char *) TRUE, (char *) &nopositive,
       "Do not apply a positive mask."
     },
+#ifdef USE_SPAMS
     {
       "-sparse", ARGV_CONSTANT, (char *) TRUE, (char *) &use_sparse,
       "Use sparse patch merging."
     },
-
+#endif
     {NULL, ARGV_END, NULL, NULL, NULL}
   };
   
@@ -552,9 +553,11 @@ int main(int argc, char  *argv[] )
       selection_size=configuration[scale].selectionsize*2;
     }
     if(use_sparse) {
+#ifdef USE_SPAMS    
         max = nlmsegSparse4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
                         configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale]);
+#endif
     }  else {
         max = nlmsegFuzzy4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
