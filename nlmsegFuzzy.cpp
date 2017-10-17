@@ -137,10 +137,10 @@ float nlmsegFuzzy4D(float *subject, float *imagedata,
     { /*start parallel section*/
       int j,k;
       
-      float * restrict PatchImg;
-      float * restrict PatchTemp;
+      float * PatchImg;
+      float * PatchTemp;
       
-      data_t  *restrict tab;
+      data_t  *tab;
       
       if( omp_get_thread_num()==0 )
         fprintf(stderr,"\b\b\b\b\b\b\b\b\b%3d / %3d", i*omp_get_num_threads()+1, dims[0]);
@@ -264,12 +264,9 @@ float nlmsegFuzzy4D(float *subject, float *imagedata,
               notfinished+=1;
               SegSubject[index] = -1;
             }
-          
           }// mask check
-          
         } // for k
       } // for j
-      
       /*Freeing per-thread data*/
       /*end of parallel section*/
     } // for i

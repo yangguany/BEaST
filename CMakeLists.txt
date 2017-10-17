@@ -88,17 +88,53 @@ endif()
 # others
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
-INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/include )
+INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/include 
+    ${CMAKE_SOURCE_DIR}/spams-2.6.1 
+    ${CMAKE_SOURCE_DIR}/spams-2.6.1/linalg
+    ${CMAKE_SOURCE_DIR}/spams-2.6.1/decomp
+    ${CMAKE_SOURCE_DIR}/spams-2.6.1/prox
+    )
 
-
-SET(BEAST_SRC 
-  alloc.c beast_lib.c distance_patch.c moments.c nlm_utils.c nlmfilter.c nlmsegFuzzy.c nlmsegSparse.c label.c ParseArgv.c
+SET(SPAMS_SRC
+    spams-2.6.1/spams/linalg/misc.h
+    spams-2.6.1/spams/linalg/cblas_defvar.h
+    spams-2.6.1/spams/linalg/cblas_alt_template.h
+    spams-2.6.1/spams/linalg/utils.h
+    spams-2.6.1/spams/linalg/linalg.h
+    spams-2.6.1/spams/linalg/mexutils.h
+    spams-2.6.1/spams/linalg/list.h
+    spams-2.6.1/spams/linalg/cblas_template.h
+    spams-2.6.1/spams/decomp/decomp.h
+    spams-2.6.1/spams/decomp/lsqsplx.h
+    spams-2.6.1/spams/decomp/projsplx.h
+    spams-2.6.1/spams/dictLearn/dicts.h
+    spams-2.6.1/spams/dictLearn/arch.h
+    spams-2.6.1/spams/prox/fista.h
+    spams-2.6.1/spams/prox/surrogate.h
+    spams-2.6.1/spams/prox/project.h
+    spams-2.6.1/spams/prox/svm.h
+    spams-2.6.1/spams/prox/mexgrouputils.h
+    spams-2.6.1/spams/prox/groups-graph.h
+    spams-2.6.1/spams.h
 )
 
+SET(BEAST_SRC 
+  alloc.cpp
+  beast_lib.cpp
+  distance_patch.cpp
+  moments.cpp
+  nlm_utils.cpp
+  nlmfilter.cpp
+  nlmsegFuzzy.cpp
+  nlmsegSparse.cpp
+  label.cpp
+  ParseArgv.c
+  beast_spams_wrapper.cpp
+)
 
 IF(LIBMINC_FOUND)
   INCLUDE( ${LIBMINC_USE_FILE} )
-  SET(BEAST_SRC ${BEAST_SRC} mincio.c)
+  SET(BEAST_SRC ${BEAST_SRC} mincio.cpp)
   ADD_DEFINITIONS( -DHAVE_MINC )
 ENDIF(LIBMINC_FOUND)
 
@@ -128,14 +164,14 @@ ADD_LIBRARY(beast  STATIC
 TARGET_LINK_LIBRARIES(beast ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} )
 
 ADD_EXECUTABLE(mincbeast
-  mincbeast.c
+  mincbeast.cpp
 )
 
 TARGET_LINK_LIBRARIES(mincbeast beast m)
 
 IF(LIBMINC_FOUND AND USE_NIFTI)
   ADD_EXECUTABLE(minc2nifti
-    minc2nifti.c
+    minc2nifti.cpp
     )
   TARGET_LINK_LIBRARIES(minc2nifti beast)
 ENDIF(LIBMINC_FOUND AND USE_NIFTI)

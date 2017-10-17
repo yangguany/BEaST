@@ -110,13 +110,13 @@ int median_filter(float *volume, int *sizes, int filtersize){
   
   numelements=filtersize*filtersize*filtersize;
   
-  _kernel=malloc(omp_get_max_threads()*sizeof(float*));
+  _kernel=(float**)malloc(omp_get_max_threads()*sizeof(float*));
   
   for(i=0;i<omp_get_max_threads();i++)
-      _kernel[i] = malloc(numelements*sizeof(float));
+      _kernel[i] = (float*)malloc(numelements*sizeof(float));
 
 
-  result = malloc(sizes[0]*sizes[1]*sizes[2]*sizeof(*result));
+  result = (float*)malloc(sizes[0]*sizes[1]*sizes[2]*sizeof(*result));
 
   #pragma omp parallel for
   for (i=margin;i<sizes[0]-margin;i++)
@@ -625,8 +625,8 @@ int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int
 
   /* Creating mask corresponding to connectivity */
   if(connectivity==26){
-    mask = malloc(connectivity*sizeof(*mask));
-    mask[0] = malloc(connectivity*3*sizeof(**mask));
+    mask = (int**)malloc(connectivity*sizeof(*mask));
+    mask[0] = (int*)malloc(connectivity*3*sizeof(**mask));
     for(i=1;i<connectivity;i++)
       mask[i] = mask[0] + i*3;
     count=0;
@@ -642,8 +642,8 @@ int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int
     if(count!=connectivity) fprintf(stderr, "ERROR: error creating mask!\n");
   }
   else if(connectivity==18){
-    mask = malloc(connectivity*sizeof(*mask));
-    mask[0] = malloc(connectivity*3*sizeof(**mask));
+    mask = (int**)malloc(connectivity*sizeof(*mask));
+    mask[0] = (int*)malloc(connectivity*3*sizeof(**mask));
     for(i=1;i<connectivity;i++)
       mask[i] = mask[0] + i*3;
     count=0;
@@ -659,8 +659,8 @@ int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int
     if(count!=connectivity) fprintf(stderr, "ERROR: error creating mask!\n");
   }
   else if(connectivity==6){
-    mask = malloc(connectivity*sizeof(*mask));
-    mask[0] = malloc(connectivity*3*sizeof(**mask));
+    mask = (int**)malloc(connectivity*sizeof(*mask));
+    mask[0] = (int*)malloc(connectivity*3*sizeof(**mask));
     for(i=1;i<connectivity;i++)
       mask[i] = mask[0] + i*3;
     
@@ -680,7 +680,7 @@ int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int
   //fprintf(stderr,"Total voxels: %d\n",total_voxels);
 
   /* Allocate stack */
-  stack = malloc(total_voxels*sizeof(*stack));
+  stack = (point3D *)malloc(total_voxels*sizeof(*stack));
 
   marked=1;
   current = -1;
@@ -732,7 +732,7 @@ int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int
 }
 
 
-int read_configuration(char *filename, beast_conf *conf){
+int read_configuration(const char *filename, beast_conf *conf){
   int i,size=0;
   FILE *fd;
   char line[FILENAMELENGTH];
@@ -779,7 +779,7 @@ int read_configuration(char *filename, beast_conf *conf){
 }
 
 
-int read_list(char *filename, char **list,char *basedir) {
+int read_list(const char *filename, char **list,const char *basedir) {
   FILE *fd;
   char line[FILENAMELENGTH];
   int size=0;
@@ -936,7 +936,7 @@ char* create_minc_timestamp(int argc,char *argv[])
   for (i=0; i<argc; i++) 
     str_len+=strlen(argv[i])+1;
   
-  timestamp=malloc(str_len+3);
+  timestamp=(char *)malloc(str_len+3);
   strcpy(timestamp,cur_time);
   
   /* Copy the program name and arguments */

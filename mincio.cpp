@@ -155,12 +155,12 @@ image_metadata * read_minc(char *filename, float **image, int *sizes){
       return( NULL );
 
     meta = (image_metadata *)calloc( 1 , sizeof(image_metadata) ) ;
-    meta->start  = calloc(3,sizeof(float));
-    meta->step   = calloc(3,sizeof(float));
-    meta->length = calloc(3,sizeof(int));
+    meta->start  = (float *)calloc(3,sizeof(float));
+    meta->step   = (float *)calloc(3,sizeof(float));
+    meta->length = (int *)calloc(3,sizeof(int));
 
     get_volume_sizes(volume,sizes);
-    *image=malloc(sizes[0]*sizes[1]*sizes[2]*sizeof(**image));
+    *image=(float *)malloc(sizes[0]*sizes[1]*sizes[2]*sizeof(**image));
     set_volume(*image, volume, sizes);
 
     meta->length[0]=sizes[0];

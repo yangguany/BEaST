@@ -54,7 +54,7 @@ float nlmsegSparse4D(float *subject, float *imagedata,
                      int sizepatch, int searcharea, float beta, float threshold, 
                      int dims[3],  int librarysize, float *SegSubject, float *PatchCount)
 {    
-  float *restrict MeansSubj, *restrict VarsSubj, *restrict localmask;
+  float *MeansSubj, *VarsSubj, *localmask;
   int i,v,f,ndim;
   float min,max;
   int patch_volume;
@@ -136,10 +136,10 @@ float nlmsegSparse4D(float *subject, float *imagedata,
       int j,k;
       
       /*use thread-specific temp memory*/
-      float * restrict PatchImg= _PatchImg[omp_get_thread_num()];
-      float * restrict PatchMask=_PatchMask[omp_get_thread_num()];;
-      float * restrict PatchTemp=_PatchTemp[omp_get_thread_num()];
-      float * restrict PatchDistance= _PatchDistance[omp_get_thread_num()];
+      float * PatchImg= _PatchImg[omp_get_thread_num()];
+      float * PatchMask=_PatchMask[omp_get_thread_num()];;
+      float * PatchTemp=_PatchTemp[omp_get_thread_num()];
+      float * PatchDistance= _PatchDistance[omp_get_thread_num()];
       
       if( omp_get_thread_num()==0 )
         fprintf(stderr,"\b\b\b\b\b\b\b\b\b%3d / %3d", i*omp_get_num_threads()+1, dims[0]);

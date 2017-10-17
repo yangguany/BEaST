@@ -248,11 +248,11 @@ int main(int argc, char  *argv[] )
   output_file = argv[argc-1];
 
   if (mask_file==NULL) {
-    mask_file=malloc((strlen(libdir)+20)*sizeof(*mask_file));
+    mask_file=(char*)malloc((strlen(libdir)+20)*sizeof(*mask_file));
     sprintf(mask_file,"%s/margin_mask.mnc",libdir);
   }
   if ((!nopositive) && (positive_file==NULL)) {
-    positive_file=malloc((strlen(libdir)+30)*sizeof(*positive_file));
+    positive_file=(char*)malloc((strlen(libdir)+30)*sizeof(*positive_file));
     sprintf(positive_file,"%s/intersection_mask.mnc",libdir);
   }
 

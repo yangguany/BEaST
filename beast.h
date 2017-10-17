@@ -93,8 +93,8 @@ int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int
 
 int pre_selection(float *subject, float *mask, char **images, int *sizes, int librarysize, int num_selected, int *selection, char *outfile, VIO_BOOL verbose);
 
-int read_configuration(char *filename, beast_conf *conf);
-int read_list(char *filename, char **list,char *basedir);
+int read_configuration(const char *filename, beast_conf *conf);
+int read_list(const char *filename, char **list,const char *basedir);
 
 image_metadata * read_volume(char *filename, float **data, int *sizes);
 int write_volume_generic(char *filename, float *data, image_metadata *meta,VIO_BOOL binary_mask );

@@ -36,6 +36,8 @@
                                        else \
                                          current=-2;
 
+int getLargestObject_wrap(Volume_wrap *wvol, Volume_wrap *wlabeled, int *sizes, VIO_Real lblValue, int object_no);
+                                       
 int label_volume_wrap_real(Volume_wrap *woriginal, Volume_wrap *wlabeled, VIO_Real iso, int **label_sizes, byte connectivity) {
 
   int sizes[3];
@@ -50,8 +52,8 @@ int label_volume_wrap_real(Volume_wrap *woriginal, Volume_wrap *wlabeled, VIO_Re
 
   /* Creating mask corresponding to connectivity */
   if(connectivity==26){
-    mask = malloc(connectivity*sizeof(*mask));
-    mask[0] = malloc(connectivity*3*sizeof(**mask));
+    mask = (int **)malloc(connectivity*sizeof(*mask));
+    mask[0] = (int *)malloc(connectivity*3*sizeof(**mask));
     for(i=1;i<connectivity;i++)
       mask[i] = mask[0] + i*3;
     count=0;
@@ -67,8 +69,8 @@ int label_volume_wrap_real(Volume_wrap *woriginal, Volume_wrap *wlabeled, VIO_Re
     if(count!=connectivity) fprintf(stderr, "ERROR: error creating mask!\n");
   }
   else if(connectivity==18){
-    mask = malloc(connectivity*sizeof(*mask));
-    mask[0] = malloc(connectivity*3*sizeof(**mask));
+    mask = (int **)malloc(connectivity*sizeof(*mask));
+    mask[0] = (int *)malloc(connectivity*3*sizeof(**mask));
     for(i=1;i<connectivity;i++)
       mask[i] = mask[0] + i*3;
     count=0;
@@ -84,8 +86,8 @@ int label_volume_wrap_real(Volume_wrap *woriginal, Volume_wrap *wlabeled, VIO_Re
     if(count!=connectivity) fprintf(stderr, "ERROR: error creating mask!\n");
   }
   else if(connectivity==6){
-    mask = malloc(connectivity*sizeof(*mask));
-    mask[0] = malloc(connectivity*3*sizeof(**mask));
+    mask = (int **)malloc(connectivity*sizeof(*mask));
+    mask[0] = (int *)malloc(connectivity*3*sizeof(**mask));
     for(i=1;i<connectivity;i++)
       mask[i] = mask[0] + i*3;
     mask[0][0]=-1;mask[0][1]=0;mask[0][2]=0;
@@ -110,7 +112,7 @@ int label_volume_wrap_real(Volume_wrap *woriginal, Volume_wrap *wlabeled, VIO_Re
   rdata = (VIO_Real ***)woriginal->data;
 
   /* Allocate stack */
-  stack = malloc(sizes[0]*sizes[1]*sizes[2]*sizeof(*stack));
+  stack = (point3D *)malloc(sizes[0]*sizes[1]*sizes[2]*sizeof(*stack));
 
   for(x=0;x<sizes[0];x++)
     for(y=0;y<sizes[1];y++)
@@ -118,7 +120,7 @@ int label_volume_wrap_real(Volume_wrap *woriginal, Volume_wrap *wlabeled, VIO_Re
 	sdata[x][y][z] = 0;
   
   label_alloc_size = sizes[0];
-  *label_sizes = malloc(label_alloc_size*sizeof(marked));
+  *label_sizes = (int *)malloc(label_alloc_size*sizeof(marked));
 #ifdef DEBUG
   fprintf(stderr,"label_alloc_size = %d\n",label_alloc_size);
 #endif
@@ -163,7 +165,7 @@ int label_volume_wrap_real(Volume_wrap *woriginal, Volume_wrap *wlabeled, VIO_Re
 	    fprintf(stderr,"Too many labels - increasing allocation!\n");
 #endif
 	    label_alloc_size += sizes[0];
-	    *label_sizes = realloc(*label_sizes,label_alloc_size*sizeof(marked));
+	    *label_sizes = (int*)realloc(*label_sizes,label_alloc_size*sizeof(marked));
 	  }
 
 	  (*label_sizes)[label-1] = marked;
@@ -192,12 +194,12 @@ int getLargestObject_float(float *input, int *sizes, VIO_Real lblValue, int obje
   wrap.type = NC_DOUBLE;
   wrap.type_size=NC_DOUBLE_SIZE;
   
-  ddata = malloc(wrap.sizes[0]*sizeof(*ddata));
-  ddata[0] = malloc(wrap.sizes[0]*wrap.sizes[1]*sizeof(**ddata));
+  ddata = (double ***)malloc(wrap.sizes[0]*sizeof(*ddata));
+  ddata[0] = (double **)malloc(wrap.sizes[0]*wrap.sizes[1]*sizeof(**ddata));
   for(i=1;i<wrap.sizes[0];i++)
     ddata[i] = ddata[0] + i*wrap.sizes[1];
   
-  ddata[0][0] = malloc(wrap.sizes[0]*wrap.sizes[1]*wrap.sizes[2]*sizeof(***ddata));
+  ddata[0][0] = (double *)malloc(wrap.sizes[0]*wrap.sizes[1]*wrap.sizes[2]*sizeof(***ddata));
   for(i=0;i<wrap.sizes[0];i++)
     for(j=0;j<wrap.sizes[1];j++)
       ddata[i][j] = ddata[0][0] +i*wrap.sizes[1]*wrap.sizes[2] + j*wrap.sizes[2];
@@ -257,7 +259,7 @@ int getLargestObject_wrap(Volume_wrap *wvol, Volume_wrap *wlabeled, int *sizes, 
 
   labels = label_volume_wrap_real(wvol,wlabeled,lblValue,&label_sizes,6);
 
-  array_copy = malloc(labels*sizeof(int));
+  array_copy = (int*)malloc(labels*sizeof(int));
 
 #ifdef DEBUG
   fprintf(stderr,"Number of labels: %d\n",labels);
