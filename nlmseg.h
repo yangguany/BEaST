@@ -35,7 +35,21 @@ float SSDPatch(float* PatchImg, float* PatchTemplate, int f);
 void ExtractPatch(float* ima, float* Patch, int x, int y, int z, int size, int sx, int sy, int sz);
 void ExtractPatch4D(float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz);
 
-float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *meandata, float *vardata, float *mask, int sizepatch, int searcharea, float alpha, float threshold, int sizes[3], int librarysize, float *SegSubject, float *PatchCount);
-float nlmfilter(float *subject, float *mask, float *maskdata, int sizepatch, int searcharea, float beta, float threshold, int dims[3], float *SegSubject, float *PatchCount);
+float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *meandata, 
+                    float *vardata, float *mask, int sizepatch, int searcharea, 
+                    float alpha, float threshold, int sizes[3], 
+                    int librarysize, float *SegSubject, float *PatchCount);
+
+float nlmsegSparse4D(float *subject, float *imagedata, 
+                    float *maskdata, float *meandata, float *vardata, 
+                    float *mask, 
+                    int sizepatch, int searcharea, float beta, float threshold, 
+                    int dims[3],  int librarysize, float *SegSubject, float *PatchCount)
+
+
+float nlmfilter(float *subject, float *mask, float *maskdata, 
+                int sizepatch, int searcharea, 
+                float beta, float threshold, int dims[3], 
+                float *SegSubject, float *PatchCount);
 
 #endif
