@@ -28,7 +28,7 @@
 #include "nlmseg.h"
 
 void ComputeFirstMoment(float* ima, float* means, const int* dims, int f, float *min, float *max)
-{    
+{
   int i;
   float vmin=FLT_MAX;
   float vmax=-FLT_MAX;

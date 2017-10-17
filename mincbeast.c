@@ -82,10 +82,11 @@ int main(int argc, char  *argv[] )
   VIO_BOOL medianfilter = FALSE;
   VIO_BOOL patchfilter = FALSE;
   VIO_BOOL abspath = FALSE;
-  VIO_BOOL same_res = FALSE;
+  VIO_BOOL same_res = TRUE;
   VIO_BOOL clobber  = FALSE;
   VIO_BOOL nomask = FALSE;
   VIO_BOOL nopositive  = FALSE;
+  VIO_BOOL use_sparse = FALSE;
 
   int voxelsize=4;
   int sizepatch = 1;
@@ -200,12 +201,20 @@ int main(int argc, char  *argv[] )
       "Output final mask with the same resolution as input file."
     },
     {
+      "-no_same_resolution", ARGV_CONSTANT, (char *) FALSE, (char *) &same_res,
+      "Output final mask downsampled at processing resolution."
+    },
+    {
       "-no_mask", ARGV_CONSTANT, (char *) TRUE, (char *) &nomask,
       "Do not apply a segmentation mask. Perform the segmentation over the entire image."
     },
     {
       "-no_positive", ARGV_CONSTANT, (char *) TRUE, (char *) &nopositive,
       "Do not apply a positive mask."
+    },
+    {
+      "-sparse", ARGV_CONSTANT, (char *) TRUE, (char *) &use_sparse,
+      "Use sparse patch merging."
     },
 
     {NULL, ARGV_END, NULL, NULL, NULL}
@@ -369,9 +378,9 @@ int main(int argc, char  *argv[] )
   }
 
   images = alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
-  masks = alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
-  means = alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
-  vars = alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
+  masks =  alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
+  means =  alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
+  vars =   alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
 
   /*for (scale=initialscale;scale>=0;scale--){*/
   for (scale=2; scale>=0; scale--) {
@@ -438,7 +447,7 @@ int main(int argc, char  *argv[] )
   patchcount = alloc_2d_float(3,volumesize*sizeof(**patchcount));
   filtered   = alloc_2d_float(3,volumesize*sizeof(**filtered));
 
-  if (verbose) fprintf(stderr,"Initial voxel size: %d\nTarget voxel size: %d\n",scales[initialscale],scales[targetscale]);
+  if (verbose) fprintf(stderr,"Initial voxel size: %d\nTarget voxel size: %d\n", scales[initialscale], scales[targetscale]);
 
   for (scale=initialscale; scale>=targetscale; scale--) {
 
@@ -527,20 +536,27 @@ int main(int argc, char  *argv[] )
     if (flipimages) {
       /* doubling the library selection by flipping images along the mid-sagittal plane */
       imagedata = (float *)realloc(imagedata,configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*imagedata));
-      maskdata =  (float *)realloc(maskdata,configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*maskdata));
-      meandata =  (float *)realloc(meandata,configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*meandata));
-      vardata =   (float *)realloc(vardata,configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*vardata));
+      maskdata =  (float *)realloc(maskdata, configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*maskdata) );
+      meandata =  (float *)realloc(meandata, configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*meandata) );
+      vardata =   (float *)realloc(vardata,  configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*vardata)  );
 
       for (i=0; i<configuration[scale].selectionsize; i++) {
         flip_data(imagedata+i*scaledvolumesize, imagedata+(configuration[scale].selectionsize+i)*scaledvolumesize, sizes[scale]);
-        flip_data(maskdata+i*scaledvolumesize, maskdata+(configuration[scale].selectionsize+i)*scaledvolumesize, sizes[scale]);
-        flip_data(meandata+i*scaledvolumesize, meandata+(configuration[scale].selectionsize+i)*scaledvolumesize, sizes[scale]);
-        flip_data(vardata+i*scaledvolumesize, vardata+(configuration[scale].selectionsize+i)*scaledvolumesize, sizes[scale]);
+        flip_data(maskdata+i*scaledvolumesize,  maskdata+(configuration[scale].selectionsize+i)*scaledvolumesize,  sizes[scale]);
+        flip_data(meandata+i*scaledvolumesize,  meandata+(configuration[scale].selectionsize+i)*scaledvolumesize,  sizes[scale]);
+        flip_data(vardata+i*scaledvolumesize,   vardata+(configuration[scale].selectionsize+i)*scaledvolumesize,   sizes[scale]);
       }
 
-      max = nlmsegFuzzy4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, configuration[scale].threshold, sizes[scale], configuration[scale].selectionsize*2, segsubject[scale], patchcount[scale]);
-    } else {
-      max = nlmsegFuzzy4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, configuration[scale].threshold, sizes[scale], configuration[scale].selectionsize, segsubject[scale], patchcount[scale]);
+    }
+    if(use_sparse) {
+        
+        max = nlmsegSparse4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
+                        configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
+                        configuration[scale].threshold, sizes[scale], configuration[scale].selectionsize*2, segsubject[scale], patchcount[scale]);
+    }  else {
+        max = nlmsegFuzzy4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
+                        configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
+                        configuration[scale].threshold, sizes[scale], configuration[scale].selectionsize*2, segsubject[scale], patchcount[scale]);
     }
 
     free(imagedata);
@@ -551,11 +567,11 @@ int main(int argc, char  *argv[] )
 
     if (positive_file!=NULL) {
       /* add the certain positive segmentation (inside mask) */
-      add_mask_data(segsubject[scale],positivemask[scale],sizes[scale]);
+      add_mask_data(segsubject[scale], positivemask[scale], sizes[scale]);
     }
 
     /* add the certain segmentation from the previous scale */
-    add_mask_data(segsubject[scale],segmented[scale],sizes[scale]);
+    add_mask_data(segsubject[scale], segmented[scale], sizes[scale]);
 
     if (medianfilter) {
       median_filter(segsubject[scale], sizes[scale], 3);
@@ -576,7 +592,7 @@ int main(int argc, char  *argv[] )
     }
 
     free(selection);
-  } // for each scale
+  } /* for each scale */
 
 
   if (count_file!=NULL) {

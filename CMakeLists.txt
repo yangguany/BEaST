@@ -1,5 +1,5 @@
 SET(BEAST_PACKAGE_VERSION_MAJOR 1)
-SET(BEAST_PACKAGE_VERSION_MINOR 16)
+SET(BEAST_PACKAGE_VERSION_MINOR 90)
 SET(BEAST_PACKAGE_VERSION_PATCH 00)
 
 IF(NOT MINC_TOOLKIT_BUILD)
@@ -92,7 +92,7 @@ INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/include )
 
 
 SET(BEAST_SRC 
-  alloc.c beast_lib.c distance_patch.c moments.c nlm_utils.c nlmfilter.c nlmsegFuzzy.c label.c ParseArgv.c
+  alloc.c beast_lib.c distance_patch.c moments.c nlm_utils.c nlmfilter.c nlmsegFuzzy.c nlmsegSparse.c label.c ParseArgv.c
 )
 
 

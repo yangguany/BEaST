@@ -44,7 +44,7 @@ float nlmsegSparse4D(float *subject, float *imagedata,
                     float *maskdata, float *meandata, float *vardata, 
                     float *mask, 
                     int sizepatch, int searcharea, float beta, float threshold, 
-                    int dims[3],  int librarysize, float *SegSubject, float *PatchCount)
+                    int dims[3],  int librarysize, float *SegSubject, float *PatchCount);
 
 
 float nlmfilter(float *subject, float *mask, float *maskdata, 

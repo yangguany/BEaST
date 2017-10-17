@@ -47,7 +47,7 @@
     #define omp_get_max_threads() 1
 #endif
 
-/*Can be use to store the distance and the location*/
+/*Can be used to store the distance and the location*/
 /*Some compilation issues can occur here, use typedef strcut with window*/
 typedef struct {
   double dist;
@@ -58,7 +58,11 @@ typedef struct {
 } data_t;
 
 
-float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *meandata, float *vardata, float *mask, int sizepatch, int searcharea, float beta, float threshold, int dims[3], int librarysize, float *SegSubject, float *PatchCount)
+float nlmsegFuzzy4D(float *subject, float *imagedata, 
+                    float *maskdata, float *meandata, float *vardata, 
+                    float *mask, 
+                    int sizepatch, int searcharea, float beta, float threshold, 
+                    int dims[3],  int librarysize, float *SegSubject, float *PatchCount)
 {    
   float *MeansSubj, *VarsSubj, *localmask;
   int i,v,f,ndim;
@@ -91,11 +95,11 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
   sadims = pow(2*v+1,ndim);
   sadims = sadims * librarysize;
 
-  /* allocate memory */
+  /* allocate memory for multithreading operation*/
   for(i=0;i<omp_get_max_threads();i++)
   {
-    _PatchImg[i] =(float*) malloc((2*f+1)*(2*f+1)*(2*f+1)*sizeof(float));
-    _PatchTemp[i]=(float*) malloc((2*f+1)*(2*f+1)*(2*f+1)*sizeof(float));
+    _PatchImg[i] =(float*) malloc( (2*f+1)*(2*f+1)*(2*f+1)*sizeof(float) );
+    _PatchTemp[i]=(float*) malloc( (2*f+1)*(2*f+1)*(2*f+1)*sizeof(float) );
   }
   
   
@@ -130,8 +134,11 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
     for(i=0;i<dims[0];i++)
     { /*start parallel section*/
       int j,k;
-      float *PatchImg, *PatchTemp;
-      data_t  *tab;
+      
+      float * restrict PatchImg;
+      float * restrict PatchTemp;
+      
+      data_t  *restrict tab;
       
       if( omp_get_thread_num()==0 )
         fprintf(stderr,"\b\b\b\b\b\b\b\b\b%3d / %3d", i*omp_get_num_threads()+1, dims[0]);
@@ -154,7 +161,7 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
             float proba=0.;
             float average=0;
             float totalweight=0;
-            int count = 0;
+            int   count = 0;
             float minidist = FLT_MAX; /*FLT_MAX;*/
             float TMean,TVar;
             
@@ -180,20 +187,26 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
                     int t;
                     for(t=0;t<librarysize;t++)
                     {
-                      int index2=t*volumesize+ni*(dims[2]*dims[1])+(nj*dims[2])+nk;
+                      int index2 = t*volumesize+ni*(dims[2]*dims[1])+(nj*dims[2])+nk;
+                      
                       float Mean = meandata[index2];
                       float Var =  vardata [index2];
                       
                       /*Similar Luminance and contrast -> Cf Wang TIP 2004*/
-                      float th = ((2 * Mean * TMean + epsi) / ( Mean*Mean + TMean*TMean + epsi))  * ((2 * sqrt(Var) * sqrt(TVar) + epsi) / (Var + TVar + epsi));
+                      float th = ((2 * Mean * TMean + epsi) / ( Mean*Mean + TMean*TMean + epsi))  *
+                                 ((2 * sqrt(Var) * sqrt(TVar) + epsi) / (Var + TVar + epsi));
+
                       if(th > threshold)
                       {
                         float d;
                         data_t storage;
                         
-                        ExtractPatch4D(imagedata, PatchImg,ni,nj,nk,t,f,dims[0],dims[1],dims[2]);
-                        d =  SSDPatch(PatchImg,PatchTemp,f);
+                        ExtractPatch4D(imagedata, PatchImg ,ni,nj,nk, t,f, dims[0], dims[1], dims[2]);
+                        
+                        d =  SSDPatch(PatchImg, PatchTemp, f);
+                        
                         if (d < minidist) minidist = d;
+                        
                         storage.dist  = d;
                         storage.z = ni;
                         storage.y = nj;
@@ -221,14 +234,14 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
               /*You can use the closest Patches (i.e. the 'lim' closest ones) or all the preselected patches (count)*/
               //lim = count; /*in this case, you take all the preselected patches into account*/
               
-              if (minidist<=0) minidist = epsi; /*to avoid division by zero*/		   
+              if ( minidist<=epsi ) minidist = epsi; /*to avoid division by zero*/
                 
                 while (p < count)
                 {
                   data_t storage = tab[p];
                   float w = exp(- ((storage.dist)/(beta*(minidist)) ) ); /*The smoothing parameter is the minimal distance*/
                   
-                  if (w>0)  
+                  if (w>0.0)  
                   {
                     average  = average + maskdata[(storage.t*volumesize)+(storage.z*(dims[2]*dims[1]))+(storage.y*dims[2])+storage.x]*w;			      
                     totalweight = totalweight + w;
@@ -262,6 +275,7 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
     time1=time(NULL);
     
     if ( notfinished>0 ) {
+      /*relax preselection criteria*/
       int count;
       threshold=threshold*0.95;
       mincount=mincount*0.95;
@@ -272,16 +286,16 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
       for(i=0;i<dims[0];i++)
       {
         int j,k;
-        for(j=0;j<dims[1];j++)	    
+        for(j=0;j<dims[1];j++)
         {
-          for(k=0;k<dims[2];k++)                
+          for(k=0;k<dims[2];k++)
           {
             int index=i*(dims[2]*dims[1])+(j*dims[2])+k;
             
-            if (SegSubject[index]<0){
+            if ( SegSubject[index]<0 ){
               localmask[index] = 1;
               count++;
-            }else{
+            } else {
               localmask[index] = 0;
             }
           }
@@ -307,9 +321,8 @@ float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *me
   free(_PatchImg);
   free(_PatchTemp);
   free(_tab);
-
   
-  fprintf(stderr," done (%d sec, t=%f, min=%d)\n",(int)(time1-time2),threshold,mincount);
+  fprintf(stderr," done (%d sec, t=%f, min=%d)\n",(int)(time1-time2), threshold, mincount);
   
   free(MeansSubj);
   free(VarsSubj);
