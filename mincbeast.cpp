@@ -67,7 +67,7 @@ int main(int argc, char  *argv[] )
   float max,min;
   float **segmented;
   float *tempdata;
-  float lambda2=0.15;
+  double lambda2=0.15;
   int sparse_stride=1;
   int scale,scaledvolumesize,scales[3] = {1,2,4};
   int masksize=0,initialscale,targetscale,scalesteps;
