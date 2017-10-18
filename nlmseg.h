@@ -26,30 +26,34 @@
 #ifndef NLMSEG_H
 #define NLMSEG_H
 
-void ComputeFirstMoment(float* ima, float* means, const int* dims, int f, float *min, float *max);
-void ComputeSecondMoment(float* ima, float* means, float* variance, const int* dims,int f, float *min, float *max);
-void ComputeFirstMoment4D(float* ima,float* atlas, float* means, float* Ameans,const int* dims, int f);
-void ComputeSecondMoment4D(float* ima,float* atlas, float* means, float* Ameans, float* variance, float* Avariance,const int* dims,int f);
+void ComputeFirstMoment(const float* ima, float* means, const int* dims, int f, float *min, float *max);
+void ComputeSecondMoment(const float* ima,const  float* means, float* variance, const int* dims,int f, float *min, float *max);
+void ComputeFirstMoment4D(const float* ima,const float* atlas, float* means, float* Ameans,const int* dims, int f);
+void ComputeSecondMoment4D(const float* ima,const float* atlas,const  float* means,const  float* Ameans, float* variance, float* Avariance,const int* dims,int f);
 
-float SSDPatch(float* PatchImg, float* PatchTemplate, int f);
-void ExtractPatch(float* ima, float* Patch, int x, int y, int z, int size, int sx, int sy, int sz);
-void ExtractPatch4D(float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz);
+float SSDPatch(const float* PatchImg, const float* PatchTemplate, int f);
+void ExtractPatch(const float* ima, float* Patch, int x, int y, int z, int size, int sx, int sy, int sz);
+void ExtractPatch4D(const float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz);
 
-float nlmsegFuzzy4D(float *subject, float *imagedata, float *maskdata, float *meandata, 
-                    float *vardata, float *mask, int sizepatch, int searcharea, 
-                    float alpha, float threshold, int sizes[3], 
+void ExtractPatch_norm(const float* ima, float* Patch, int x, int y, int z, int size, int sx, int sy, int sz,float mean);
+void ExtractPatch4D_norm(const float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz,float mean);
+
+
+float nlmsegFuzzy4D(const float *subject, const float *imagedata,const  float *maskdata, const float *meandata, 
+                    const float *vardata, const float *mask, int sizepatch, int searcharea, 
+                    float alpha, float threshold, const int sizes[3], 
                     int librarysize, float *SegSubject, float *PatchCount);
 
-float nlmsegSparse4D(float *subject, float *imagedata, 
-                    float *maskdata, float *meandata, float *vardata, 
-                    float *mask, 
+float nlmsegSparse4D(const float *subject,const  float *imagedata, 
+                    const float *maskdata, const float *meandata,const  float *vardata, 
+                    const float *mask, 
                     int sizepatch, int searcharea, float beta, float threshold, 
-                    int dims[3],   int librarysize, float *SegSubject, float *PatchCount);
+                    const int dims[3],   int librarysize, float *SegSubject, float *PatchCount);
 
 
-float nlmfilter(float *subject, float *mask, float *maskdata, 
+float nlmfilter(const float *subject,const float *mask,const float *maskdata, 
                 int sizepatch, int searcharea, 
-                float beta, float threshold, int dims[3], 
+                float beta, float threshold,const int dims[3], 
                 float *SegSubject, float *PatchCount);
 
 #endif

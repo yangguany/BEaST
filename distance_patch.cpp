@@ -25,7 +25,7 @@
 
 #include <math.h>
 
-float SSDPatch(float* PatchImg, float* PatchTemplate, int f)
+float SSDPatch(const float* PatchImg, const float* PatchTemplate, int f)
 {
     /*SSD */
     float d;
@@ -47,7 +47,7 @@ float SSDPatch(float* PatchImg, float* PatchTemplate, int f)
 }
 
 
-float SSDPatchMean(float* PatchImg, float* PatchTemplate, int f, float Mean, float TMean)
+float SSDPatchMean(const float* PatchImg, const float* PatchTemplate, int f, float Mean, float TMean)
 {
     /*SSD */
     float d;
@@ -69,7 +69,7 @@ float SSDPatchMean(float* PatchImg, float* PatchTemplate, int f, float Mean, flo
 }
 
 
-float WSSDPatch(float* PatchImg, float* PatchTemplate, float* kernel, int f)
+float WSSDPatch(const float* PatchImg, const float* PatchTemplate, float* kernel, int f)
 {
     /*Weighted SSD */
     float d,distancetotal,weight;
@@ -93,7 +93,7 @@ float WSSDPatch(float* PatchImg, float* PatchTemplate, float* kernel, int f)
 }
 
 
-float NSSDPatch(float* PatchImg, float* PatchTemplate, float Mean, float TMean, float Var, float TVar, int f)
+float NSSDPatch(const float* PatchImg, const float* PatchTemplate, float Mean, float TMean, float Var, float TVar, int f)
 {
     /*Weighted Normalized SSD similar to Weighted CoC */
     float d,distancetotal,weight;
@@ -117,7 +117,7 @@ float NSSDPatch(float* PatchImg, float* PatchTemplate, float Mean, float TMean, 
     
 }
 
-float WNSSDPatch(float* PatchImg, float* PatchTemplate, float* kernel, float Mean, float TMean, float Var, float TVar, int f)
+float WNSSDPatch(const float* PatchImg,const  float* PatchTemplate,const  float* kernel, float Mean, float TMean, float Var, float TVar, int f)
 {
     /*Weighted Normalized SSD similar to Weighted CoC */
     float d,distancetotal,weight;
@@ -141,7 +141,7 @@ float WNSSDPatch(float* PatchImg, float* PatchTemplate, float* kernel, float Mea
     
 }
 
-float WCoCPatch(float* PatchImg, float* PatchTemplate, float* kernel, float Mean, float TMean, float Var, float TVar, int f)
+float WCoCPatch(const float* PatchImg,const  float* PatchTemplate, const float* kernel, float Mean, float TMean, float Var, float TVar, int f)
 {
      /* http://en.wikipedia.org/wiki/Pearson_product-moment_correlation_coefficient*/
     /*Weighted CoC */
@@ -168,7 +168,7 @@ float WCoCPatch(float* PatchImg, float* PatchTemplate, float* kernel, float Mean
     
 }
 
-float SSIMPatch(float* PatchImg, float* PatchTemplate, float Mean, float TMean, float Var, float TVar, int f)
+float SSIMPatch(const float* PatchImg, const float* PatchTemplate, float Mean, float TMean, float Var, float TVar, int f)
 {
     
     float d,weight,CoC,acu;
@@ -196,7 +196,7 @@ float SSIMPatch(float* PatchImg, float* PatchTemplate, float Mean, float TMean, 
     
 }
 
-float WSSIMPatch(float* PatchImg, float* PatchTemplate, float* kernel, float Mean, float TMean, float Var, float TVar, int f)
+float WSSIMPatch(const float* PatchImg,const  float* PatchTemplate,const float* kernel, float Mean, float TMean, float Var, float TVar, int f)
 {
     
     float d,weight,CoC;

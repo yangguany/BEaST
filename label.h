@@ -37,7 +37,7 @@ typedef struct Volume_wrap {
   void *data;
 } Volume_wrap;
 
-void ***alloc_data3D(int sizes[3],byte size_element);
+void ***alloc_data3D(int sizes[3],int size_element);
 void free_wrap(Volume_wrap *wrap);
 
 int getLargestObject_float(float *input, int *sizes, VIO_Real lblValue, int object_no);

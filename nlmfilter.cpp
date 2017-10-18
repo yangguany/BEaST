@@ -44,7 +44,7 @@ typedef struct {
 } data_t;
 
 /* nlmsegNew4D(single(subject),single(img),single(segimg),single(means),single(vars),single(mask),sizepatch,searcharea,beta,th) */
-float nlmfilter(float *subject, float *mask, float *maskdata, int sizepatch, int searcharea, float beta, float threshold, int dims[3], float *SegSubject, float *PatchCount)
+float nlmfilter(const float *subject,const  float *mask,const  float *maskdata, int sizepatch, int searcharea, float beta, float threshold,const  int dims[3], float *SegSubject, float *PatchCount)
 {    
   float *MeansSubj, *VarsSubj, *PatchImg, *PatchTemp, *localmask;
   float w,average,totalweight, d, Mean, TMean, Var, TVar,th,proba, min, max;

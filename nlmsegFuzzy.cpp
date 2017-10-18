@@ -58,11 +58,13 @@ typedef struct {
 } data_t;
 
 
-float nlmsegFuzzy4D(float *subject, float *imagedata, 
-                    float *maskdata, float *meandata, float *vardata, 
-                    float *mask, 
+float nlmsegFuzzy4D(const float *subject,const  float *imagedata, 
+                    const float *maskdata, const float *meandata,
+                    const float *vardata, 
+                    const float *mask, 
                     int sizepatch, int searcharea, float beta, float threshold, 
-                    int dims[3],  int librarysize, float *SegSubject, float *PatchCount)
+                    const int dims[3],  int librarysize, 
+                    float *SegSubject, float *PatchCount)
 {    
   float *MeansSubj;
   float *VarsSubj;

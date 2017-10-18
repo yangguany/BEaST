@@ -332,7 +332,7 @@ int getLargestObject_wrap(Volume_wrap *wvol, Volume_wrap *wlabeled, int *sizes, 
 
 } // getLargestObject()
 
-void ***alloc_data3D(int sizes[3], byte size_element)
+void ***alloc_data3D(int sizes[3], int size_element)
 {
   void ***iii, **ii, *i;
   int j,limit;

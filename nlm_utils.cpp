@@ -77,9 +77,7 @@ void DisplayPatch(float* Patch, int size)
     
 }
 
-
-
-void ExtractPatch(float* ima, float* Patch, int x, int y, int z, int size, int sx, int sy, int sz)
+void ExtractPatch(const float* ima, float* Patch, int x, int y, int z, int size, int sx, int sy, int sz)
 {    
   int i,j,k;
   int ni1, nj1, nk1;
@@ -113,13 +111,13 @@ void ExtractPatch(float* ima, float* Patch, int x, int y, int z, int size, int s
 }
 
 
-void ExtractPatch4D(float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz)
+void ExtractPatch4D(const float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz)
 {
     
     int i,j,k;
     int Psize = 2*size +1;
     /*find the image in the stack*/
-    float *_frame=ima+t*(sx*sy*sz);
+    const float *_frame=ima+t*(sx*sy*sz);
     
     /*TODO: remove?*/
     for(i=0;i<Psize*Psize*Psize;i++)
@@ -157,3 +155,92 @@ void ExtractPatch4D(float* ima, float* Patch, int x,int y, int z, int t,int size
 }
 
 
+void ExtractPatch_norm(const float* ima, float* Patch, int x, int y, int z, int size, int sx, int sy, int sz,float mean)
+{    
+  int i,j,k;
+  int ni1, nj1, nk1;
+  int Psize = 2*size +1;
+  double norm=0.0;
+  
+  for(i=0;i<(2*size+1)*(2*size+1)*(2*size+1);i++)
+    Patch[i]=0.0;
+  
+  for(i=-size;i<=size;i++)
+    {
+      for(j=-size;j<=size;j++)
+        {
+          for(k=-size;k<=size;k++)
+            {
+              float v;
+              ni1=x+i;
+              nj1=y+j;
+              nk1=z+k;
+                    
+              if(ni1<0) ni1=-ni1;
+              if(nj1<0) nj1=-nj1;
+              if(nk1<0) nk1=-nk1;
+                    
+              if(ni1>=sx) ni1=2*sx-ni1-1;
+              if(nj1>=sy) nj1=2*sy-nj1-1;
+              if(nk1>=sz) nk1=2*sz-nk1-1;
+                    
+              v=ima[ni1*(sz*sy)+(nj1*sz)+nk1]-mean;
+              norm+=v*v;
+              Patch[(i+size)*(Psize*Psize)+((j+size)*Psize)+(k+size)] = v;
+            }
+        }
+    }  
+  norm=sqrt(norm);
+  for(i=0;i<(2*size+1)*(2*size+1)*(2*size+1);i++)
+    Patch[i]/=norm;
+}
+
+
+void ExtractPatch4D_norm(const float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz,float mean)
+{
+    
+    int i,j,k;
+    int Psize = 2*size +1;
+    /*find the image in the stack*/
+    const float *_frame=ima+t*(sx*sy*sz);
+    double norm=0.0;
+    
+    for(i=0;i<Psize*Psize*Psize;i++)
+        Patch[i]=0.0;
+    
+    /*center */
+    x-=size;
+    y-=size;
+    z-=size;
+    
+    for(i=0;i<Psize;i++)
+    {
+        int ni1=x+i;
+        if(ni1<0) ni1=-ni1;
+        else if(ni1>=sx) ni1=2*sx-ni1-1;
+        for(j=0;j<Psize;j++)
+        {
+            int nj1=y+j;
+            if(nj1<0) 
+                nj1=-nj1;
+            else if(nj1>=sy) 
+                nj1=2*sy-nj1-1;
+            
+            for(k=0;k<Psize;k++)
+            {
+                int nk1=z+k;
+                float v;
+                if(nk1<0) nk1=-nk1;
+                else if(nk1>=sz) nk1=2*sz-nk1-1;
+                
+                v=_frame[ni1*sz*sy+nj1*sz+nk1]-mean;
+                norm+=v*v;
+                Patch[i*Psize*Psize+j*Psize+k]=v;
+            }
+        }
+    }
+    norm=sqrt(norm);
+    
+    for(i=0;i<Psize*Psize*Psize;i++)
+        Patch[i]/=norm;
+}

@@ -103,10 +103,10 @@ int main(int argc, char  *argv[] )
   char *conf_file=NULL;
   char *mask_file=NULL;
 
-  char *default_beast_library=BEAST_LIBRARY_PREFIX;
-  char *default_beast_mask=BEAST_LIBRARY_PREFIX"/margin_mask.mnc";
-  char *default_beast_positive_file=BEAST_LIBRARY_PREFIX"/intersection_mask.mnc";
-  char *default_beast_config=BEAST_LIBRARY_PREFIX"/default.2mm.conf";
+  const char *default_beast_library=BEAST_LIBRARY_PREFIX;
+  const char *default_beast_mask=BEAST_LIBRARY_PREFIX"/margin_mask.mnc";
+  const char *default_beast_positive_file=BEAST_LIBRARY_PREFIX"/intersection_mask.mnc";
+  const char *default_beast_config=BEAST_LIBRARY_PREFIX"/default.2mm.conf";
 
   /* Argument table */
   ArgvInfo argTable[] = {
@@ -282,7 +282,7 @@ int main(int argc, char  *argv[] )
   }
   volumesize=sizes[0][0]*sizes[0][1]*sizes[0][2];
 
-  subject = alloc_2d_float(3,volumesize*sizeof(**subject));
+  subject = alloc_2d_float(3,volumesize);
   cp_volume(tempdata, subject[0], sizes[0]);
   free(tempdata);
 
@@ -295,7 +295,7 @@ int main(int argc, char  *argv[] )
     fprintf(stderr,"ERROR! Mask dimension does not match image dimension!\n");
     return STATUS_ERR;
   }
-  mask = alloc_2d_float(3,volumesize*sizeof(**mask));
+  mask = alloc_2d_float(3,volumesize);
   cp_volume(tempdata, mask[0], sizes[0]);
   free(tempdata);
 
@@ -314,7 +314,7 @@ int main(int argc, char  *argv[] )
       fprintf(stderr,"ERROR! Positive mask dimension does not match image dimension!\n");
       return STATUS_ERR;
     }
-    positivemask = alloc_2d_float(3,volumesize*sizeof(**mask));
+    positivemask = alloc_2d_float(3,volumesize);
     cp_volume(tempdata, positivemask[0], sizes[0]);
     free(tempdata);
     free_meta(positive_meta);
@@ -323,7 +323,7 @@ int main(int argc, char  *argv[] )
     down_sample(positivemask[0], positivemask[2], 4, sizes[0]);
   }
 
-  segmented = alloc_2d_float(3,volumesize*sizeof(**segmented));
+  segmented = alloc_2d_float(3,volumesize);
 
   /* downsample the subject and mask */
   down_sample(subject[0], subject[1], 2, sizes[0]);
@@ -446,9 +446,9 @@ int main(int argc, char  *argv[] )
   threshold_data(mask[1],sizes[1],0.5);
   threshold_data(mask[2],sizes[2],0.5);
 
-  segsubject = alloc_2d_float(3,volumesize*sizeof(**segsubject));
-  patchcount = alloc_2d_float(3,volumesize*sizeof(**patchcount));
-  filtered   = alloc_2d_float(3,volumesize*sizeof(**filtered));
+  segsubject = alloc_2d_float(3,volumesize);
+  patchcount = alloc_2d_float(3,volumesize);
+  filtered   = alloc_2d_float(3,volumesize);
 
   if (verbose) fprintf(stderr,"Initial voxel size: %d\nTarget voxel size: %d\n", scales[initialscale], scales[targetscale]);
 
@@ -462,10 +462,10 @@ int main(int argc, char  *argv[] )
 
     scaledvolumesize = sizes[scale][0]*sizes[scale][1]*sizes[scale][2];
 
-    imagedata = (float *)malloc(configuration[scale].selectionsize*scaledvolumesize*sizeof(*imagedata));
-    maskdata =  (float *)malloc(configuration[scale].selectionsize*scaledvolumesize*sizeof(*maskdata));
-    meandata =  (float *)malloc(configuration[scale].selectionsize*scaledvolumesize*sizeof(*meandata));
-    vardata =   (float *)malloc(configuration[scale].selectionsize*scaledvolumesize*sizeof(*vardata));
+    imagedata = (float *)malloc(configuration[scale].selectionsize*scaledvolumesize*sizeof(float));
+    maskdata =  (float *)malloc(configuration[scale].selectionsize*scaledvolumesize*sizeof(float));
+    meandata =  (float *)malloc(configuration[scale].selectionsize*scaledvolumesize*sizeof(float));
+    vardata =   (float *)malloc(configuration[scale].selectionsize*scaledvolumesize*sizeof(float));
 
     /* read the library images, masks, and moments */
     for (i=0; i<configuration[scale].selectionsize; i++) {

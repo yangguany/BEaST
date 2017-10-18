@@ -94,7 +94,6 @@ if (MT_USE_OPENMP)
         set(CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}   ${OpenMP_C_FLAGS}")
         set(CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-        ADD_DEFINITIONS(-D_OPENMP)
     else()
         message(WARNING "OpenMP NOT found")
     endif()
@@ -153,6 +152,16 @@ SET(BEAST_SRC
 
 IF(HAVE_SPAMS)
     SET(BEAST_SRC ${BEAST_SRC} ${SPAMS_SRC})
+
+    
+    # test SPAMS
+    ADD_EXECUTABLE(spams_test
+        spams_test.cpp
+    )
+    
+    TARGET_LINK_LIBRARIES( spams_test
+                  ${OpenBLAS_LIBRARY} )
+    
     
 ENDIF(HAVE_SPAMS)
 

@@ -27,7 +27,7 @@
 #include "basic.h"
 #include "nlmseg.h"
 
-void ComputeFirstMoment(float* ima, float* means, const int* dims, int f, float *min, float *max)
+void ComputeFirstMoment(const float* ima, float* means, const int* dims, int f, float *min, float *max)
 {
   int i;
   float vmin=FLT_MAX;
@@ -92,7 +92,7 @@ void ComputeFirstMoment(float* ima, float* means, const int* dims, int f, float 
 }
 
 
-void ComputeSecondMoment(float* ima, float* means, float* variance, const int* dims,int f, float *min, float *max)
+void ComputeSecondMoment(const float* ima,const  float* means, float* variance, const int* dims,int f, float *min, float *max)
 {
   int i;
   float vmin=FLT_MAX,vmax=-FLT_MAX;
@@ -147,7 +147,7 @@ void ComputeSecondMoment(float* ima, float* means, float* variance, const int* d
 }
 
 
-void ComputeFirstMoment4D(float* ima,float* atlas, float* means, float* Ameans,const int* dims, int f)
+void ComputeFirstMoment4D(const float* ima,const float* atlas, float* means, float* Ameans,const int* dims, int f)
 {
   int k,t;
   
@@ -243,7 +243,7 @@ void ComputeFirstMoment4D(float* ima,float* atlas, float* means, float* Ameans,c
   }
 }
 
-void ComputeSecondMoment4D(float* ima,float* atlas, float* means, float* Ameans, float* variance, float* Avariance,const int* dims,int f)
+void ComputeSecondMoment4D(const float* ima,const float* atlas,const float* means, const float* Ameans, float* variance, float* Avariance,const int* dims,int f)
 {    
   int k,t;
   
