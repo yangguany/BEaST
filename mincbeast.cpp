@@ -74,6 +74,7 @@ int main(int argc, char  *argv[] )
   beast_conf input_conf[3],configuration[3];
   image_metadata **meta;
   image_metadata *mask_meta;
+  image_metadata *temp_meta;
   int targetvoxelsize=1;
 
   VIO_BOOL outputprob = FALSE;
@@ -298,10 +299,11 @@ int main(int argc, char  *argv[] )
   cp_volume(tempdata, subject[0], sizes[0]);
   free(tempdata);
 
-  if (read_volume(mask_file, &tempdata, tmpsizes) == NULL) {
+  if ((temp_meta=read_volume(mask_file, &tempdata, tmpsizes)) == NULL) {
     fprintf(stderr,"ERROR! Image not read: %s\n",mask_file);
     return STATUS_ERR;
   }
+  free_meta(temp_meta);
 
   if ((tmpsizes[0]!=sizes[0][0]) || (tmpsizes[1]!=sizes[0][1]) || (tmpsizes[2]!=sizes[0][2])) {
     fprintf(stderr,"ERROR! Mask dimension does not match image dimension!\n");
