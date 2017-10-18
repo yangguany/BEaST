@@ -39,6 +39,10 @@ void ExtractPatch_norm(const float* ima, float* Patch, int x, int y, int z, int 
 void ExtractPatch4D_norm(const float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz,float mean);
 
 
+void AddWPatch(float* ima,const float* Patch, float w, int x, int y, int z, int size, int sx, int sy, int sz);
+void AddW(float* ima,float w,                          int x, int y, int z, int size, int sx, int sy, int sz);
+
+
 float nlmsegFuzzy4D(const float *subject, const float *imagedata,const  float *maskdata, const float *meandata, 
                     const float *vardata, const float *mask, int sizepatch, int searcharea, 
                     float alpha, float threshold, const int sizes[3], 
@@ -48,7 +52,7 @@ float nlmsegSparse4D(const float *subject,const  float *imagedata,
                     const float *maskdata, const float *meandata,const  float *vardata, 
                     const float *mask, 
                     int sizepatch, int searcharea, float beta, float threshold, 
-                    const int dims[3],   int librarysize, float *SegSubject, float *PatchCount);
+                    const int dims[3],   int librarysize, float *SegSubject, float *PatchCount, float lambda2,int stride);
 
 
 float nlmfilter(const float *subject,const float *mask,const float *maskdata, 

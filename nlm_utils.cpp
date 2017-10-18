@@ -110,6 +110,59 @@ void ExtractPatch(const float* ima, float* Patch, int x, int y, int z, int size,
     }  
 }
 
+void AddWPatch(float* ima,const float* Patch, float w, int x, int y, int z, int size, int sx, int sy, int sz)
+{    
+  int i,j,k;
+  int ni1, nj1, nk1;
+  int Psize = 2*size +1;
+  
+  for(i=-size;i<=size;i++)
+    {
+      for(j=-size;j<=size;j++)
+        {
+          for(k=-size;k<=size;k++)
+                  {
+              ni1=x+i;
+              nj1=y+j;
+              nk1=z+k;
+              
+              if(ni1>=0 && nj1>=0 && nk1>=0 &&
+                 ni1<sx && nj1<sy && nk1<sz )
+              {
+                  ima[ni1*(sz*sy)+(nj1*sz)+nk1] += Patch[(i+size)*(Psize*Psize)+((j+size)*Psize)+(k+size)]*w;
+              }
+            }
+        }
+    }  
+}
+
+void AddW(float* ima,float w, int x, int y, int z, int size, int sx, int sy, int sz)
+{    
+  int i,j,k;
+  int ni1, nj1, nk1;
+  int Psize = 2*size +1;
+  
+  for(i=-size;i<=size;i++)
+    {
+      for(j=-size;j<=size;j++)
+        {
+          for(k=-size;k<=size;k++)
+            {
+              ni1=x+i;
+              nj1=y+j;
+              nk1=z+k;
+              
+              if(ni1>=0 && nj1>=0 && nk1>=0 &&
+                 ni1<sx && nj1<sy && nk1<sz )
+              {
+                  ima[ni1*(sz*sy)+(nj1*sz)+nk1]+=w;
+              }
+            }
+        }
+    }  
+}
+
+
 
 void ExtractPatch4D(const float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz)
 {

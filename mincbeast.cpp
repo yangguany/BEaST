@@ -67,6 +67,8 @@ int main(int argc, char  *argv[] )
   float max,min;
   float **segmented;
   float *tempdata;
+  float lambda2=0.15;
+  int sparse_stride=1;
   int scale,scaledvolumesize,scales[3] = {1,2,4};
   int masksize=0,initialscale,targetscale,scalesteps;
   beast_conf input_conf[3],configuration[3];
@@ -217,6 +219,16 @@ int main(int argc, char  *argv[] )
       "-sparse", ARGV_CONSTANT, (char *) TRUE, (char *) &use_sparse,
       "Use sparse patch merging."
     },
+    {
+      "-lambda2", ARGV_FLOAT, (char *) 1, (char *) &lambda2,
+      "Sparsity cost lambda2."
+    },
+    {
+      "-stride", ARGV_INT, (char *) 1, (char *) &sparse_stride,
+      "Stride for spars segmentation speedup with possible quality degradation. (DON'T USE!)"
+    },
+    
+    
 #endif
     {NULL, ARGV_END, NULL, NULL, NULL}
   };
@@ -244,8 +256,8 @@ int main(int argc, char  *argv[] )
     return STATUS_ERR;
   }
 
-  libdir = argv[argc-3];
-  input_file = argv[argc-2];
+  libdir      = argv[argc-3];
+  input_file  = argv[argc-2];
   output_file = argv[argc-1];
 
   if (mask_file==NULL) {
@@ -282,7 +294,7 @@ int main(int argc, char  *argv[] )
   }
   volumesize=sizes[0][0]*sizes[0][1]*sizes[0][2];
 
-  subject = alloc_2d_float(3,volumesize);
+  subject = alloc_2d_float(3,volumesize); /*VF:memory waste....*/
   cp_volume(tempdata, subject[0], sizes[0]);
   free(tempdata);
 
@@ -556,7 +568,9 @@ int main(int argc, char  *argv[] )
 #ifdef USE_SPAMS    
         max = nlmsegSparse4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
-                        configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale]);
+                        configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale],
+                        lambda2,sparse_stride
+                            );
 #endif
     }  else {
         max = nlmsegFuzzy4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
@@ -652,9 +666,15 @@ int main(int argc, char  *argv[] )
   
   free_meta(meta[2]);
   free_meta(meta[1]);
+  free_meta(meta[0]);
   
   free(meta);
   free(history_label);
+  
+  if(mask_file)
+    free(mask_file);
+  if(positive_file)
+    free(positive_file);
   
   return STATUS_OK;
 }
