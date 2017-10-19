@@ -52,7 +52,8 @@ float nlmsegSparse4D(const float *subject,const  float *imagedata,
                     const float *maskdata, const float *meandata,const  float *vardata, 
                     const float *mask, 
                     int sizepatch, int searcharea, float beta, float threshold, 
-                    const int dims[3],   int librarysize, float *SegSubject, float *PatchCount, float lambda2,int stride);
+                    const int dims[3],   int librarysize, float *SegSubject, float *PatchCount,
+                    float lambda1, float lambda2,int sparse_mode, int stride);
 
 
 float nlmfilter(const float *subject,const float *mask,const float *maskdata, 

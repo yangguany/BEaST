@@ -67,7 +67,11 @@ int main(int argc, char  *argv[] )
   float max,min;
   float **segmented;
   float *tempdata;
-  double lambda2=0.15;
+  
+  double lambda1=0.15;
+  double lambda2=0.0;
+  int    sparse_mode=2;
+  
   int sparse_stride=1;
   int scale,scaledvolumesize,scales[3] = {1,2,4};
   int masksize=0,initialscale,targetscale,scalesteps;
@@ -221,9 +225,18 @@ int main(int argc, char  *argv[] )
       "Use sparse patch merging."
     },
     {
+      "-lambda1", ARGV_FLOAT, (char *) 1, (char *) &lambda1,
+      "Sparsity cost lambda1."
+    },
+    {
       "-lambda2", ARGV_FLOAT, (char *) 1, (char *) &lambda2,
       "Sparsity cost lambda2."
     },
+    {
+      "-sparse_mode", ARGV_INT, (char *) 1, (char *) &sparse_mode,
+      "Sparse mode."
+    },
+    
     {
       "-stride", ARGV_INT, (char *) 1, (char *) &sparse_stride,
       "Stride for spars segmentation speedup with possible quality degradation. (DON'T USE!)"
@@ -571,7 +584,7 @@ int main(int argc, char  *argv[] )
         max = nlmsegSparse4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
                         configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale],
-                        lambda2,sparse_stride
+                        lambda1,lambda2,sparse_mode,sparse_stride
                             );
 #endif
     }  else {

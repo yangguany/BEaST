@@ -60,7 +60,7 @@ float nlmsegSparse4D(const float *subject,const  float *imagedata,
                      int sizepatch, int searcharea, float beta, float threshold, 
                      const int dims[3],  int librarysize, 
                      float *SegSubject, float *PatchCount,
-                     float lambda2, int stride
+                     float lambda1, float lambda2, int sparse_mode,int stride
                     )
 {    
   float *MeansSubj, *VarsSubj, *localmask;
@@ -91,7 +91,9 @@ float nlmsegSparse4D(const float *subject,const  float *imagedata,
   
   
   fprintf(stderr,"Running sparse segmentation\n");
-  fprintf(stderr,"Patch size: %d\nSearch area: %d\nBeta: %f\nThreshold: %f\nSelection: %d\nLambda2:%f\n",sizepatch,searcharea,beta,threshold,librarysize,lambda2);
+  
+  fprintf(stderr,"Patch size: %d\nSearch area: %d\nBeta: %f\nThreshold: %f\nSelection: %d\nLambda1:%f\nLambda2:%f\nSparse mode:%d\n",
+        sizepatch,searcharea,beta,threshold,librarysize,lambda1,lambda2,sparse_mode);
   
   ndim = 3;
   volumesize=dims[0]*dims[1]*dims[2];
@@ -237,7 +239,7 @@ float nlmsegSparse4D(const float *subject,const  float *imagedata,
                 Matrix<float> X(PatchTemp,  patch_volume, 1 );
                 /*TEST*/
                 lasso<float>(M, X, _alpha, 
-                             MINCOUNT, constraint, lambda2, L1COEFFS, 
+                             MINCOUNT, lambda1, lambda2, (constraint_type)sparse_mode,  /*L1COEFFS*/
                              true, false, 1); /*TODO: maybe use MINCOUNT for max count?*/
                 
                 float minidist = FLT_MAX; /*FLT_MAX;*/

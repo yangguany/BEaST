@@ -89,6 +89,8 @@ int main(int argc,char **argv)
         printf("%f ",alpha1[i]);
     printf("\n");
     
+    constraint=0.15;
+    lambda2=0.0;
     /*TEST PENALTY*/
     lasso<float>(M, X, alpha2, 
                     count, constraint, lambda2, PENALTY , true, false);
