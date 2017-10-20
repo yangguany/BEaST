@@ -109,6 +109,8 @@ int main(int argc, char  *argv[] )
   char *count_file=NULL;
   char *conf_file=NULL;
   char *mask_file=NULL;
+  
+  char *library_prefix="library";
 
   const char *default_beast_library=BEAST_LIBRARY_PREFIX;
   const char *default_beast_mask=BEAST_LIBRARY_PREFIX"/margin_mask.mnc";
@@ -241,9 +243,12 @@ int main(int argc, char  *argv[] )
       "-stride", ARGV_INT, (char *) 1, (char *) &sparse_stride,
       "Stride for spars segmentation speedup with possible quality degradation. (DON'T USE!)"
     },
-    
-    
 #endif
+    //library_prefix
+    {
+      "-library_prefix", ARGV_STRING, (char *) 1, (char *) &library_prefix,
+      "library prefix, for cross-validation experiment."
+    },
     {NULL, ARGV_END, NULL, NULL, NULL}
   };
   
@@ -407,37 +412,37 @@ int main(int argc, char  *argv[] )
             configuration[i].alpha, configuration[i].beta, configuration[i].threshold, configuration[i].selectionsize);
   }
 
-  images = alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
-  masks =  alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
-  means =  alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
-  vars =   alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
+  images = alloc_3d_char(3, MAXLIBSIZE, FILENAMELENGTH);
+  masks =  alloc_3d_char(3, MAXLIBSIZE, FILENAMELENGTH);
+  means =  alloc_3d_char(3, MAXLIBSIZE, FILENAMELENGTH);
+  vars =   alloc_3d_char(3, MAXLIBSIZE, FILENAMELENGTH);
 
   /*for (scale=initialscale;scale>=0;scale--){*/
   for (scale=2; scale>=0; scale--) {
 
-    sprintf(imagelist,"%s/library.stx.%dmm",libdir,scales[scale]);
-    sprintf(masklist,"%s/library.masks.%dmm",libdir,scales[scale]);
+    sprintf(imagelist,"%s/%s.stx.%dmm", libdir, library_prefix, scales[scale]);
+    sprintf(masklist,"%s/%s.masks.%dmm",libdir, library_prefix, scales[scale]);
     if (load_moments) {
-      sprintf(meanlist,"%s/library.means.%dmm",libdir,scales[scale]);
-      sprintf(varlist,"%s/library.vars.%dmm",libdir,scales[scale]);
+      sprintf(meanlist,"%s/%s.means.%dmm",libdir, library_prefix, scales[scale]);
+      sprintf(varlist,"%s/%s.vars.%dmm",  libdir, library_prefix, scales[scale]);
     }
-    num_images=read_list(imagelist,images[scale],abspath?"":libdir);
-    if (read_list(masklist,masks[scale],abspath?"":libdir)!=num_images) {
+    num_images=read_list( imagelist, images[scale], abspath?"":libdir );
+    if (read_list( masklist, masks[scale], abspath?"":libdir )!=num_images) {
       fprintf(stderr,"ERROR! Number of images and masks does not match!\n");
       return STATUS_ERR;
     }
 
-    if (num_images<configuration[scale].selectionsize) {
+    if ( num_images<configuration[scale].selectionsize ) {
       fprintf(stderr,"ERROR! Cannot select more images than in the library!\n\tlibrary images: %d\n\tselection: %d\n",num_images,configuration[scale].selectionsize);
       return STATUS_ERR;
     }
 
-    if (load_moments) {
-      if (read_list(meanlist,means[scale],abspath?"":libdir)!=num_images) {
+    if ( load_moments ) {
+      if ( read_list(meanlist, means[scale],abspath?"":libdir)!=num_images ) {
         fprintf(stderr,"ERROR! Number of images and means does not match!\n");
         return STATUS_ERR;
       }
-      if (read_list(varlist,vars[scale],abspath?"":libdir)!=num_images) {
+      if ( read_list(varlist, vars[scale],abspath?"":libdir)!=num_images ) {
         fprintf(stderr,"ERROR! Number of images and vars does not match!\n");
         return STATUS_ERR;
       }
@@ -470,12 +475,12 @@ int main(int argc, char  *argv[] )
   free(tempdata);
 
   /* make the downsampled masks crisp */
-  threshold_data(mask[1],sizes[1],0.5);
-  threshold_data(mask[2],sizes[2],0.5);
+  threshold_data( mask[1], sizes[1], 0.5);
+  threshold_data( mask[2], sizes[2], 0.5);
 
-  segsubject = alloc_2d_float(3,volumesize);
-  patchcount = alloc_2d_float(3,volumesize);
-  filtered   = alloc_2d_float(3,volumesize);
+  segsubject = alloc_2d_float(3, volumesize);
+  patchcount = alloc_2d_float(3, volumesize);
+  filtered   = alloc_2d_float(3, volumesize);
 
   if (verbose) fprintf(stderr,"Initial voxel size: %d\nTarget voxel size: %d\n", scales[initialscale], scales[targetscale]);
 
@@ -690,6 +695,6 @@ int main(int argc, char  *argv[] )
     free(mask_file);
   if(positive_file)
     free(positive_file);
-  
+
   return STATUS_OK;
 }
