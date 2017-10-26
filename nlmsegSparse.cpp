@@ -36,7 +36,8 @@
 #include <float.h>
 #include "nlmseg.h"
 
-#define MINCOUNT 100
+static const int MINCOUNT=100;
+static const int MAXITER=5;
 
 
 #ifdef MT_USE_OPENMP
@@ -55,7 +56,7 @@
 
 float nlmsegSparse4D(const float *subject,const  float *imagedata, 
                      const float *maskdata,const  float *meandata,
-                     const  float *vardata, 
+                     const float *vardata, 
                      const float *mask, 
                      int sizepatch, int searcharea, float beta, float threshold, 
                      const int dims[3],  int librarysize, 
@@ -77,6 +78,7 @@ float nlmsegSparse4D(const float *subject,const  float *imagedata,
   double minidist;
   double epsi = 0.0001;
   time_t time1,time2;
+  int   iterations=0;
   
   float constraint=1.0; /*TODO: find optimal value?*/
   
@@ -356,8 +358,14 @@ float nlmsegSparse4D(const float *subject,const  float *imagedata,
         free(_PatchImg[i]);
         free(_PatchMask[i]);
     }
-  } while (notfinished && mincount>1);
+    iterations++;
+  } while (notfinished && mincount>1 && iterations<MAXITER);
 
+  if(notfinished) /*stopped early*/
+  {
+      
+  }
+  
   for(i=0;i<omp_get_max_threads();i++)
   {
     free(_PatchTemp[i]);

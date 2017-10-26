@@ -627,7 +627,9 @@ int main(int argc, char  *argv[] )
     if (scale > targetscale) {
       /* if performing a higher resolution step, upsample the result and create new mask */
       resize_trilinear(segsubject[scale], sizes[scale], sizes[scale-1], segsubject[scale-1]);
-      masksize=update_mask(segsubject[scale-1], mask[scale-1], segmented[scale-1], sizes[scale-1], configuration[scale].alpha, 1.0-configuration[scale].alpha);
+      
+      masksize=update_mask(segsubject[scale-1], mask[scale-1], segmented[scale-1], sizes[scale-1], 
+                           configuration[scale].alpha, 1.0-configuration[scale].alpha);
     }
 
     free(selection);

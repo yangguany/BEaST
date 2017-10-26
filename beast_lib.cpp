@@ -118,11 +118,12 @@ int median_filter(float *volume, int *sizes, int filtersize){
 
   result = (float*)malloc(sizes[0]*sizes[1]*sizes[2]*sizeof(*result));
 
-  #pragma omp parallel for
+  #pragma omp parallel for shared(result) 
   for (i=margin;i<sizes[0]-margin;i++)
   {
     int j,k;
     float *kernel=_kernel[omp_get_thread_num()];
+    
     for (j=margin;j<sizes[1]-margin;j++)
       for (k=margin;k<sizes[2]-margin;k++)
       {
@@ -133,15 +134,18 @@ int median_filter(float *volume, int *sizes, int filtersize){
           for (jj=-margin;jj<=margin;jj++)
             for (kk=-margin;kk<=margin;kk++){
               kindex = index + (ii*sizes[2]*sizes[1] + jj*sizes[2] + kk);
-              kernel[e++] = volume[kindex];
+              if(volume[kindex]>=0.0) /*DON't use negative values*/
+                kernel[e++] = volume[kindex];
             }
         /* sort the values and assign the median */
-        qsort(kernel,e,sizeof(float),cmp_float);
-        result[index]=kernel[numelements/2];
+        if(e>0) {
+            qsort(kernel,e,sizeof(float),cmp_float);
+            result[index]=kernel[numelements/2];
+        }
       }
   }
   
-  #pragma omp parallel for
+  #pragma omp parallel for shared(result)
   for (i=margin;i<sizes[0]-margin;i++)
   {
     int j,k;
