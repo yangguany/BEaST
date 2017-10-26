@@ -40,7 +40,7 @@
 #endif
 
 
-void set_volume(float *data, VIO_Volume vol, int *sizes){
+void set_volume(float *data, VIO_Volume vol,const  int *sizes){
   int i,j,k;
 
   for (i=0;i<sizes[0];i++)
@@ -49,7 +49,7 @@ void set_volume(float *data, VIO_Volume vol, int *sizes){
         data[i*sizes[1]*sizes[2]+j*sizes[2]+k] = get_volume_real_value(vol,i,j,k,0,0);
 }
 
-void get_volume(float *data, VIO_Volume vol, int *sizes){
+void get_volume(const float *data, VIO_Volume vol,const int *sizes){
   int i,j,k;
 
   for (i=0;i<sizes[0];i++)
@@ -58,7 +58,7 @@ void get_volume(float *data, VIO_Volume vol, int *sizes){
           set_volume_real_value(vol,i,j,k,0,0,data[i*sizes[1]*sizes[2]+j*sizes[2]+k]);
 }
 
-int write_volume(char *name, VIO_Volume vol, float *data){
+int write_volume(const char *name, VIO_Volume vol,const float *data){
   int i,j,k,index,sizes[5];
   float min=FLT_MAX,max=FLT_MIN;
 
@@ -80,12 +80,12 @@ int write_volume(char *name, VIO_Volume vol, float *data){
 
   get_volume(data, vol, sizes);
 
-  output_volume( name, NC_FLOAT,FALSE,min,max,vol,NULL, (minc_output_options *)NULL);
+  output_volume( (char *)name, NC_FLOAT,FALSE,min,max,vol,NULL, (minc_output_options *)NULL);
 
   return STATUS_OK;
 }
 
-int write_minc(char *filename, float *image, image_metadata *meta,VIO_BOOL binary_mask){
+int write_minc(const char *filename,const  float *image,const image_metadata *meta,VIO_BOOL binary_mask){
   VIO_Volume volume;
   int i,j,k,index;
   int err=VIO_OK;
@@ -137,21 +137,21 @@ int write_minc(char *filename, float *image, image_metadata *meta,VIO_BOOL binar
   get_volume(image, volume, meta->length);
 
   if(!binary_mask)
-    err=output_volume( filename, NC_FLOAT,FALSE,min, max,volume,meta->history,(minc_output_options *)NULL);
+    err=output_volume( (char*)filename, NC_FLOAT,FALSE,min, max,volume,meta->history,(minc_output_options *)NULL);
   else
-    err=output_volume( filename, NC_BYTE,FALSE,0, 1.0,volume,meta->history,(minc_output_options *)NULL);
+    err=output_volume( (char*)filename, NC_BYTE,FALSE,0, 1.0,volume,meta->history,(minc_output_options *)NULL);
     
   delete_volume(volume);
   
   return err==VIO_OK?STATUS_OK:STATUS_ERR;
 }
 
-image_metadata * read_minc(char *filename, float **image, int *sizes){
+image_metadata * read_minc(const char *filename, float **image,int *sizes){
   VIO_Volume volume;
   VIO_Real dummy[3];
   image_metadata *meta;
   
-  if( input_volume(filename, 3, NULL, NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
+  if( input_volume((char*)filename, 3, NULL, NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
       return( NULL );
 
     meta = (image_metadata *)calloc( 1 , sizeof(image_metadata) ) ;

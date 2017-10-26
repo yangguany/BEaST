@@ -83,7 +83,7 @@ int combine_maps(float *data, float *map, float *mask, int *sizes);
 int down_sample(float *subject, float *result, int factor, int *sizes);
 int up_sample(float *subject, float *result, int factor, int *sizes, int *targetsizes);
 
-int threshold_data(float *data, int *sizes, float threshold);
+int threshold_data(float *data,const int *sizes, float threshold);
 
 int add_mask_data(float *data1, float *mask, int *sizes);
 int wipe_data(float *data1, int *sizes, float value);
@@ -91,13 +91,16 @@ int update_mask(float *subject, float *mask, float *segmented, int *sizes, float
 
 int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int sz, float fill_value, int connectivity);
 
-int pre_selection(float *subject, float *mask, char **images, int *sizes, int librarysize, int num_selected, int *selection, char *outfile, VIO_BOOL verbose);
+int pre_selection(const float *subject, const float *mask, 
+                  char **images,        const int *sizes, 
+                  int librarysize, int num_selected, int *selection, 
+                  const char *outfile, VIO_BOOL verbose);
 
 int read_configuration(const char *filename, beast_conf *conf);
 int read_list(const char *filename, char **list,const char *basedir);
 
-image_metadata * read_volume(char *filename, float **data, int *sizes);
-int write_volume_generic(char *filename, float *data, image_metadata *meta,VIO_BOOL binary_mask );
+image_metadata * read_volume(const char *filename, float **data,int *sizes);
+int write_volume_generic(const char *filename,const float *data,const image_metadata *meta,VIO_BOOL binary_mask );
 
 
 char* create_minc_timestamp(int argc,char *argv[]);

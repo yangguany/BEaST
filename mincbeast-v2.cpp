@@ -61,7 +61,7 @@ int main(int argc, char  *argv[] )
 {
   char *input_file,*output_file,*libdir, *history_label;
   char imagelist[FILENAMELENGTH], masklist[FILENAMELENGTH],meanlist[FILENAMELENGTH],varlist[FILENAMELENGTH];
-  char ***images, ***masks,***means,***vars;
+  char ***images, ***masks, ***means, ***vars;
   int num_images,i,sizes[3][5],tmpsizes[5],volumesize,*selection,steps=3,filled=0;
   float *imagedata,*maskdata,*meandata,*vardata,**subject,**mask,**positivemask=NULL,**segsubject,**patchcount,**filtered;
   float max,min;
@@ -71,6 +71,9 @@ int main(int argc, char  *argv[] )
   double lambda1=0.15;
   double lambda2=0.0;
   int    sparse_mode=2;
+  
+  int selection_size;
+
   
   int sparse_stride=1;
   int scale,scaledvolumesize,scales[3] = {1,2,4};
@@ -313,7 +316,7 @@ int main(int argc, char  *argv[] )
   }
   volumesize=sizes[0][0]*sizes[0][1]*sizes[0][2];
 
-  subject = alloc_2d_float(3,volumesize); /*VF:memory waste....*/
+  subject = alloc_2d_float(3, volumesize); /*VF:memory waste....*/
   cp_volume(tempdata, subject[0], sizes[0]);
   free(tempdata);
 
@@ -360,8 +363,19 @@ int main(int argc, char  *argv[] )
   /* downsample the subject and mask */
   down_sample(subject[0], subject[1], 2, sizes[0]);
   down_sample(subject[0], subject[2], 4, sizes[0]);
-  down_sample(mask[0], mask[1], 2, sizes[0]);
-  down_sample(mask[0], mask[2], 4, sizes[0]);
+  down_sample(mask[0],    mask[1],    2, sizes[0]);
+  down_sample(mask[0],    mask[2],    4, sizes[0]);
+  for(i=1;i<3;i++) {
+    int j;
+    for(j=0;j<3;j++)
+      sizes[i][j]=sizes[i-1][j]/2;
+  }
+  
+  /* make the downsampled masks crisp */
+  threshold_data( mask[1], sizes[1], 0.5);
+  threshold_data( mask[2], sizes[2], 0.5);
+  
+  
 
   /* populate the entire configuration table for compatibility reasons */
   for (i=0; i<3; i++) {
@@ -373,6 +387,7 @@ int main(int argc, char  *argv[] )
     configuration[i].threshold = threshold;
     configuration[i].selectionsize = selectionsize;
   }
+  
 
 
   if (conf_file != NULL) {
@@ -409,7 +424,7 @@ int main(int argc, char  *argv[] )
   for (i=initialscale; i>=targetscale; i--) {
     fprintf(stderr,"%d %d %d %4.2lf %4.2lf %4.2lf %d\n",
             configuration[i].voxelsize, configuration[i].patchsize, configuration[i].searcharea,
-            configuration[i].alpha,     configuration[i].beta, configuration[i].threshold, configuration[i].selectionsize);
+            configuration[i].alpha, configuration[i].beta, configuration[i].threshold, configuration[i].selectionsize);
   }
 
   images = alloc_3d_char(3, MAXLIBSIZE, FILENAMELENGTH);
@@ -417,38 +432,21 @@ int main(int argc, char  *argv[] )
   means =  alloc_3d_char(3, MAXLIBSIZE, FILENAMELENGTH);
   vars =   alloc_3d_char(3, MAXLIBSIZE, FILENAMELENGTH);
 
-  /*for (scale=initialscale;scale>=0;scale--){*/
-  for (scale=2; scale>=0; scale--) {
-
-    sprintf(imagelist,"%s/%s.stx.%dmm", libdir, library_prefix, scales[scale]);
-    sprintf(masklist,"%s/%s.masks.%dmm",libdir, library_prefix, scales[scale]);
-    if (load_moments) {
-      sprintf(meanlist,"%s/%s.means.%dmm",libdir, library_prefix, scales[scale]);
-      sprintf(varlist,"%s/%s.vars.%dmm",  libdir, library_prefix, scales[scale]);
-    }
-    num_images=read_list( imagelist, images[scale], abspath?"":libdir );
-    if (read_list( masklist, masks[scale], abspath?"":libdir )!=num_images) {
+  sprintf(imagelist,"%s/%s.stx.%dmm", libdir, library_prefix, 1);
+  sprintf(masklist,"%s/%s.masks.%dmm",libdir, library_prefix, 1);
+  sprintf(meanlist,"%s/%s.means.%dmm",libdir, library_prefix, 1);
+  sprintf(varlist,"%s/%s.vars.%dmm",  libdir, library_prefix, 1);
+  
+  num_images=read_list( imagelist, images[0], abspath?"":libdir );
+  if (read_list( masklist, masks[0], abspath?"":libdir )!=num_images) {
       fprintf(stderr,"ERROR! Number of images and masks does not match!\n");
       return STATUS_ERR;
-    }
-
-    if ( num_images<configuration[scale].selectionsize ) {
-      fprintf(stderr,"ERROR! Cannot select more images than in the library!\n\tlibrary images: %d\n\tselection: %d\n",num_images,configuration[scale].selectionsize);
-      return STATUS_ERR;
-    }
-
-    if ( load_moments ) {
-      if ( read_list(meanlist, means[scale],abspath?"":libdir)!=num_images ) {
-        fprintf(stderr,"ERROR! Number of images and means does not match!\n");
-        return STATUS_ERR;
-      }
-      if ( read_list(varlist, vars[scale],abspath?"":libdir)!=num_images ) {
-        fprintf(stderr,"ERROR! Number of images and vars does not match!\n");
-        return STATUS_ERR;
-      }
-    }
   }
-
+  if ( num_images<selection_size ) {
+    fprintf(stderr,"ERROR! Cannot select more images than in the library!\n\tlibrary images: %d\n\tselection: %d\n",num_images,selection_size);
+    return STATUS_ERR;
+  }
+  
   if ((mask_meta=read_volume(mask_file, &tempdata, tmpsizes)) == NULL) {
     fprintf(stderr,"ERROR! Image not read: %s\n",mask_file);
     return STATUS_ERR;
@@ -460,149 +458,115 @@ int main(int argc, char  *argv[] )
   free(tempdata);
   free_meta(mask_meta);
 
-  meta[1] = read_volume(images[1][0], &tempdata, sizes[1]);
-  if (meta[1] == NULL) {
-    fprintf(stderr,"ERROR! Image not read: %s\n",images[1][0]);
-    return STATUS_ERR;
-  }
-  free(tempdata);
-
-  meta[2] = read_volume(images[2][0], &tempdata, sizes[2]);
-  if (meta[2] == NULL) {
-    fprintf(stderr,"ERROR! Image not read: %s\n",images[2][0]);
-    return STATUS_ERR;
-  }
-  free(tempdata);
-
   /* make the downsampled masks crisp */
-  threshold_data( mask[1], sizes[1], 0.5);
-  threshold_data( mask[2], sizes[2], 0.5);
-
-  segsubject = alloc_2d_float(3, volumesize);
-  patchcount = alloc_2d_float(3, volumesize);
-  filtered   = alloc_2d_float(3, volumesize);
-
+  segsubject     = alloc_2d_float(3, volumesize);
+  patchcount     = alloc_2d_float(3, volumesize);
+  filtered       = alloc_2d_float(3, volumesize);
+  selection_size = configuration[0].selectionsize;
+  
   if (verbose) fprintf(stderr,"Initial voxel size: %d\nTarget voxel size: %d\n", scales[initialscale], scales[targetscale]);
+  
+  /*perform selection before */
+  selection = (int *)malloc(selection_size*sizeof(*selection));
+  pre_selection(subject[0], mask[0], images[0], sizes[0], num_images, selection_size, selection, selection_file, verbose);
 
-  for (scale=initialscale; scale>=targetscale; scale--) {
-    int selection_size=configuration[scale].selectionsize;
+  imagedata = (float *)malloc(selection_size*volumesize*sizeof(float));
+  maskdata =  (float *)malloc(selection_size*volumesize*sizeof(float));
+  
+  /* read the library images, masks, and moments */
+  for (i=0; i<selection_size; i++) {
+    image_metadata *_meta;
+    if (verbose) fprintf(stderr,".");
+    if ((_meta=read_volume(images[0][selection[i]], &tempdata, tmpsizes)) == NULL) {
+      fprintf(stderr,"ERROR! Image not read: %s\n",images[0][selection[i]]);
+      return STATUS_ERR;
+    }
+    cp_volume(tempdata, imagedata+i*volumesize, tmpsizes);
+    free(tempdata);
+    free_meta(_meta);
+  }
+  
+  if (verbose) fprintf(stderr,"*");
+  for (i=0; i<selection_size; i++) {
+    image_metadata *_meta;
+    if (verbose) fprintf(stderr,".");
+    if ((_meta=read_volume(masks[0][selection[i]], &tempdata, tmpsizes)) == NULL) {
+      fprintf(stderr,"ERROR! Image not read: %s\n",masks[0][selection[i]]);
+      return STATUS_ERR;
+    }
+    cp_volume(tempdata, maskdata+i*volumesize, tmpsizes);
+    free(tempdata);
+    free_meta(_meta);
+  }
+  if (verbose) fprintf(stderr,"*");
+  
+  
+  for (scale=initialscale; scale>=targetscale; scale--) 
+  {
+    float * _imagedata;
+    float * _maskdata;
+    float * _meandata;
+    float * _vardata;
     
-    selection = (int *)malloc(configuration[scale].selectionsize*sizeof(*selection));
-    pre_selection(subject[scale], mask[scale], images[scale], sizes[scale], num_images, configuration[scale].selectionsize, selection, selection_file,verbose);
-
-    if (verbose) fprintf(stderr,"Performing segmentation at %dmm resolution\nReading files ",scales[scale]);
-
-    scaledvolumesize = sizes[scale][0]*sizes[scale][1]*sizes[scale][2];
-
-    imagedata = (float *)malloc(configuration[scale].selectionsize*scaledvolumesize*sizeof(float));
-    maskdata =  (float *)malloc(configuration[scale].selectionsize*scaledvolumesize*sizeof(float));
-    meandata =  (float *)malloc(configuration[scale].selectionsize*scaledvolumesize*sizeof(float));
-    vardata =   (float *)malloc(configuration[scale].selectionsize*scaledvolumesize*sizeof(float));
-
-    /* read the library images, masks, and moments */
-    for (i=0; i<configuration[scale].selectionsize; i++) {
-      image_metadata *_meta;
-      if (verbose) fprintf(stderr,".");
-      if ((_meta=read_volume(images[scale][selection[i]], &tempdata, tmpsizes)) == NULL) {
-        fprintf(stderr,"ERROR! Image not read: %s\n",images[scale][selection[i]]);
-        return STATUS_ERR;
-      }
-      cp_volume(tempdata, imagedata+i*scaledvolumesize, tmpsizes);
-      free(tempdata);
-      free_meta(_meta);
-    }
-    if (verbose) fprintf(stderr,"*");
-    for (i=0; i<configuration[scale].selectionsize; i++) {
-      image_metadata *_meta;
-      if (verbose) fprintf(stderr,".");
-      if ((_meta=read_volume(masks[scale][selection[i]], &tempdata, tmpsizes)) == NULL) {
-        fprintf(stderr,"ERROR! Image not read: %s\n",masks[scale][selection[i]]);
-        return STATUS_ERR;
-      }
-      cp_volume(tempdata, maskdata+i*scaledvolumesize, tmpsizes);
-      free(tempdata);
-      free_meta(_meta);
-    }
-    if (verbose) fprintf(stderr,"*");
-
-    if (!load_moments) {
-      /* calculate the mean and variance for the library images */
-      /* this must be done if the selected patch size is different from the one used in the precalculation */
-      for (i=0; i<configuration[scale].selectionsize; i++) {
-        if (verbose) fprintf(stderr,"c");
-        ComputeFirstMoment(imagedata+i*scaledvolumesize, meandata+i*scaledvolumesize, sizes[scale], configuration[scale].patchsize, &min, &max);
-        ComputeSecondMoment(imagedata+i*scaledvolumesize, meandata+i*scaledvolumesize, vardata+i*scaledvolumesize, sizes[scale], configuration[scale].patchsize, &min, &max);
+    int scaledvolumesize = sizes[scale][0]*sizes[scale][1]*sizes[scale][2];
+    
+    printf("Scale:%d [%dx%dx%d]\n",scales[scale],sizes[scale][0],sizes[scale][1],sizes[scale][2]);
+    
+    if(scales[scale]>1) {
+      _imagedata = (float *)malloc(selection_size*scaledvolumesize*sizeof(float));
+      _maskdata =  (float *)malloc(selection_size*scaledvolumesize*sizeof(float));
+      
+      for (i=0; i<selection_size; i++) {
+        down_sample(imagedata+i*volumesize, _imagedata+i*scaledvolumesize, scales[scale], sizes[0]);
+        down_sample(maskdata+i*volumesize,  _maskdata+i*scaledvolumesize,  scales[scale], sizes[0]);
+        /* make the downsampled masks crisp */
+        threshold_data( _maskdata+i*scaledvolumesize, sizes[scale], 0.5);
       }
     } else {
-      for (i=0; i<configuration[scale].selectionsize; i++) {
-        image_metadata *_meta;
-        if (verbose) fprintf(stderr,".");
-        if ((_meta=read_volume(means[scale][selection[i]], &tempdata, tmpsizes)) == NULL) {
-          fprintf(stderr,"ERROR! Image not read: %s\n",means[scale][selection[i]]);
-          return STATUS_ERR;
-        }
-        cp_volume(tempdata, meandata+i*scaledvolumesize, tmpsizes);
-        free(tempdata);
-        free_meta(_meta);
-      }
-      if (verbose) fprintf(stderr,"*");
-      for (i=0; i<configuration[scale].selectionsize; i++) {
-        image_metadata *_meta;
-        fprintf(stderr,".");
-        if ((_meta=read_volume(vars[scale][selection[i]], &tempdata, tmpsizes)) == NULL) {
-          fprintf(stderr,"ERROR! Image not read: %s\n",masks[scale][selection[i]]);
-          return STATUS_ERR;
-        }
-        cp_volume(tempdata, vardata+i*scaledvolumesize, tmpsizes);
-        free(tempdata);
-        free_meta(_meta);
-      }
+      _imagedata = imagedata;
+      _maskdata  = maskdata;
     }
-    if (verbose) fprintf(stderr,"\n");
-    /* end of reading files */
-
+    _meandata =  (float *)malloc(selection_size*scaledvolumesize*sizeof(float));
+    _vardata =   (float *)malloc(selection_size*scaledvolumesize*sizeof(float));
+    
+    for (i=0; i<selection_size; i++) {
+      if (verbose) fprintf(stderr,"c");
+      ComputeFirstMoment(_imagedata+i*scaledvolumesize, _meandata+i*scaledvolumesize, 
+                         sizes[scale], configuration[scale].patchsize, &min, &max);
+      
+      ComputeSecondMoment(_imagedata+i*scaledvolumesize, _meandata+i*scaledvolumesize, 
+                          _vardata+i*scaledvolumesize, sizes[scale], configuration[scale].patchsize, &min, &max);
+    }
+    
     /* remove any disconnected parts */
     masksize = getLargestObject_float(mask[scale], sizes[scale], 1, 0);
 
     if (verbose) fprintf(stderr,"Mask size: %d\nAlpha: %f\n",masksize,configuration[scale].alpha);
 
     /* make sure we starting from a clean slate */
-    wipe_data(segsubject[scale],sizes[scale],0.0);
+    wipe_data(segsubject[scale], sizes[scale] ,0.0);
 
-    if (flipimages) {
-      /* doubling the library selection by flipping images along the mid-sagittal plane */
-      imagedata = (float *)realloc(imagedata,configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*imagedata));
-      maskdata =  (float *)realloc(maskdata, configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*maskdata) );
-      meandata =  (float *)realloc(meandata, configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*meandata) );
-      vardata =   (float *)realloc(vardata,  configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*vardata)  );
-
-      for (i=0; i<configuration[scale].selectionsize; i++) {
-        flip_data(imagedata+i*scaledvolumesize, imagedata+(configuration[scale].selectionsize+i)*scaledvolumesize, sizes[scale]);
-        flip_data(maskdata+i*scaledvolumesize,  maskdata+(configuration[scale].selectionsize+i)*scaledvolumesize,  sizes[scale]);
-        flip_data(meandata+i*scaledvolumesize,  meandata+(configuration[scale].selectionsize+i)*scaledvolumesize,  sizes[scale]);
-        flip_data(vardata+i*scaledvolumesize,   vardata+(configuration[scale].selectionsize+i)*scaledvolumesize,   sizes[scale]);
-      }
-      selection_size=configuration[scale].selectionsize*2;
-    }
     if(use_sparse) {
 #ifdef USE_SPAMS    
-        max = nlmsegSparse4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
+        max = nlmsegSparse4D(subject[scale], _imagedata, _maskdata, _meandata, _vardata, mask[scale], 
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
-                        configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale],
-                        lambda1,lambda2,sparse_mode,sparse_stride
-                            );
+                        configuration[scale].threshold, sizes[scale], 
+                        selection_size, segsubject[scale], patchcount[scale],
+                        lambda1, lambda2, sparse_mode, sparse_stride
+                        );
 #endif
     }  else {
-        max = nlmsegFuzzy4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
+        max = nlmsegFuzzy4D(subject[scale], _imagedata, _maskdata, _meandata, _vardata, mask[scale], 
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
-                        configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale]);
+                        configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale]
+                           );
     }
-
-    free(imagedata);
-    free(maskdata);
-    free(meandata);
-    free(vardata);
-
+    if(scales[scale]>1) {
+      free(_imagedata);
+      free(_maskdata);
+    }
+    free(_meandata);
+    free(_vardata);
 
     if (positive_file!=NULL) {
       /* add the certain positive segmentation (inside mask) */
@@ -632,9 +596,10 @@ int main(int argc, char  *argv[] )
                            configuration[scale].alpha, 1.0-configuration[scale].alpha);
     }
 
-    free(selection);
   } /* for each scale */
-
+  free(selection);
+  free(imagedata);
+  free(maskdata);
 
   if (count_file!=NULL) {
     if(write_volume_generic(count_file, patchcount[targetscale], meta[targetscale],FALSE))
@@ -686,8 +651,8 @@ int main(int argc, char  *argv[] )
   free_3d_char(means);
   free_3d_char(vars);
   
-  free_meta(meta[2]);
-  free_meta(meta[1]);
+/*  free_meta(meta[2]);
+  free_meta(meta[1]);*/
   free_meta(meta[0]);
   
   free(meta);
@@ -700,3 +665,6 @@ int main(int argc, char  *argv[] )
 
   return STATUS_OK;
 }
+
+
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */
