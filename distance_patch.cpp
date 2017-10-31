@@ -25,7 +25,7 @@
 
 #include <math.h>
 
-float SSDPatch(const float* PatchImg, const float* PatchTemplate, int f)
+float SSDPatch(const float*    PatchImg, const float*    PatchTemplate, int f)
 {
     /*SSD */
     float d;

@@ -26,11 +26,14 @@
 #include <math.h>
 #include <stdio.h>
 
+
+#define BORDER_PAD_MIRROR
+
 void Gkernel(float* gaussKernel, float sigma, int size)
 {
     /*Contruction of a 3D gaussian kernel*/
     float radiusSquared =0.;
-    int compt =0;
+    int compt=0;
     int x,y,z;
     
     for(z=1;z<=2*size+1;z++)
@@ -77,40 +80,38 @@ void DisplayPatch(float* Patch, int size)
     
 }
 
-void ExtractPatch(const float* ima, float* Patch, int x, int y, int z, int size, int sx, int sy, int sz)
+void ExtractPatch(const float*  ima, float*  Patch, int x, int y, int z, int size, int sx, int sy, int sz)
 {    
   int i,j,k;
-  int ni1, nj1, nk1;
+  //int ni1, nj1, nk1;
   int Psize = 2*size +1;
   
-  for(i=0;i<(2*size+1)*(2*size+1)*(2*size+1);i++)
-    Patch[i]=0.0;
   
   for(i=-size;i<=size;i++)
-    {
+  {
+      int ni1=x+i;
+      if(ni1<0) ni1=-ni1;
+      else if(ni1>=sx) ni1=2*sx-ni1-1;
+      
       for(j=-size;j<=size;j++)
-        {
+      {
+          int nj1=y+j;
+          if(nj1<0) nj1=-nj1;
+          else if(nj1>=sy) nj1=2*sy-nj1-1;
+          
           for(k=-size;k<=size;k++)
-                  {
-              ni1=x+i;
-              nj1=y+j;
-              nk1=z+k;
-                    
-              if(ni1<0) ni1=-ni1;
-              if(nj1<0) nj1=-nj1;
+          {
+              int nk1=z+k;
               if(nk1<0) nk1=-nk1;
-                    
-              if(ni1>=sx) ni1=2*sx-ni1-1;
-              if(nj1>=sy) nj1=2*sy-nj1-1;
-              if(nk1>=sz) nk1=2*sz-nk1-1;
-                    
+              else if(nk1>=sz) nk1=2*sz-nk1-1;
+              
               Patch[(i+size)*(Psize*Psize)+((j+size)*Psize)+(k+size)] = ima[ni1*(sz*sy)+(nj1*sz)+nk1];
-            }
-        }
-    }  
+          }
+      }
+  }
 }
 
-void AddWPatch(float* ima,const float* Patch, float w, int x, int y, int z, int size, int sx, int sy, int sz)
+void AddWPatch(float*  ima,const float*  Patch, float w, int x, int y, int z, int size, int sx, int sy, int sz)
 {    
   int i,j,k;
   int ni1, nj1, nk1;
@@ -136,7 +137,7 @@ void AddWPatch(float* ima,const float* Patch, float w, int x, int y, int z, int 
     }  
 }
 
-void AddW(float* ima,float w, int x, int y, int z, int size, int sx, int sy, int sz)
+void AddW(float*  ima,float w, int x, int y, int z, int size, int sx, int sy, int sz)
 {    
   int i,j,k;
   int ni1, nj1, nk1;
@@ -164,17 +165,13 @@ void AddW(float* ima,float w, int x, int y, int z, int size, int sx, int sy, int
 
 
 
-void ExtractPatch4D(const float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz)
+void ExtractPatch4D(const float*  ima, float*  Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz)
 {
     
     int i,j,k;
     int Psize = 2*size +1;
     /*find the image in the stack*/
-    const float *_frame=ima+t*(sx*sy*sz);
-    
-    /*TODO: remove?*/
-    for(i=0;i<Psize*Psize*Psize;i++)
-        Patch[i]=0.0;
+    const float *  _frame=ima+t*(sx*sy*sz);
     
     /*center */
     x-=size;
@@ -184,23 +181,29 @@ void ExtractPatch4D(const float* ima, float* Patch, int x,int y, int z, int t,in
     for(i=0;i<Psize;i++)
     {
         int ni1=x+i;
+#ifdef BORDER_PAD_MIRROR
         if(ni1<0) ni1=-ni1;
         else if(ni1>=sx) ni1=2*sx-ni1-1;
+#endif
         for(j=0;j<Psize;j++)
         {
             int nj1=y+j;
+#ifdef BORDER_PAD_MIRROR
             if(nj1<0) 
                 nj1=-nj1;
             else if(nj1>=sy) 
                 nj1=2*sy-nj1-1;
-            
+#endif
+      #if _OPENMP>=201307
+        #pragma omp simd
+      #endif  
             for(k=0;k<Psize;k++)
             {
                 int nk1=z+k;
-                
+#ifdef BORDER_PAD_MIRROR
                 if(nk1<0) nk1=-nk1;
                 else if(nk1>=sz) nk1=2*sz-nk1-1;
-                
+#endif
                 Patch[i*Psize*Psize+j*Psize+k]=_frame[ni1*sz*sy+nj1*sz+nk1];
             }
         }
@@ -208,58 +211,65 @@ void ExtractPatch4D(const float* ima, float* Patch, int x,int y, int z, int t,in
 }
 
 
-void ExtractPatch_norm(const float* ima, float* Patch, int x, int y, int z, int size, int sx, int sy, int sz,float mean)
+void ExtractPatch_norm(const float*  ima, float*  Patch, int x, int y, int z, int size, int sx, int sy, int sz,float mean)
 {    
   int i,j,k;
-  int ni1, nj1, nk1;
   int Psize = 2*size +1;
   double norm=0.0;
   
-  for(i=0;i<(2*size+1)*(2*size+1)*(2*size+1);i++)
-    Patch[i]=0.0;
-  
   for(i=-size;i<=size;i++)
-    {
+  {
+      int ni1=x+i;
+#ifdef BORDER_PAD_MIRROR
+      if(ni1<0) ni1=-ni1;
+      else if(ni1>=sx) ni1=2*sx-ni1-1;
+#endif
+      
       for(j=-size;j<=size;j++)
+      {
+        int nj1=y+j;
+#ifdef BORDER_PAD_MIRROR
+        if(nj1<0) nj1=-nj1;
+        else if(nj1>=sy) nj1=2*sy-nj1-1;
+#endif
+
+      #if _OPENMP>=201307
+        #pragma omp simd
+      #endif  
+      for(k=-size;k<=size;k++)
         {
-          for(k=-size;k<=size;k++)
-            {
               float v;
-              ni1=x+i;
-              nj1=y+j;
-              nk1=z+k;
+              int nk1=z+k;
                     
-              if(ni1<0) ni1=-ni1;
-              if(nj1<0) nj1=-nj1;
+#ifdef BORDER_PAD_MIRROR
               if(nk1<0) nk1=-nk1;
-                    
-              if(ni1>=sx) ni1=2*sx-ni1-1;
-              if(nj1>=sy) nj1=2*sy-nj1-1;
-              if(nk1>=sz) nk1=2*sz-nk1-1;
+              else if(nk1>=sz) nk1=2*sz-nk1-1;
+#endif
                     
               v=ima[ni1*(sz*sy)+(nj1*sz)+nk1]-mean;
               norm+=v*v;
               Patch[(i+size)*(Psize*Psize)+((j+size)*Psize)+(k+size)] = v;
-            }
         }
-    }  
+    }
+  }  
   norm=sqrt(norm);
-  for(i=0;i<(2*size+1)*(2*size+1)*(2*size+1);i++)
+  
+#if _OPENMP>=201307
+    #pragma omp simd
+#endif  
+  for(i=0;i<Psize*Psize*Psize;i++)
     Patch[i]/=norm;
 }
 
 
-void ExtractPatch4D_norm(const float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz,float mean)
+void ExtractPatch4D_norm(const float*  ima, float*  Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz,float mean)
 {
     
     int i,j,k;
     int Psize = 2*size +1;
     /*find the image in the stack*/
-    const float *_frame=ima+t*(sx*sy*sz);
+    const float *  _frame=ima+t*(sx*sy*sz);
     double norm=0.0;
-    
-    for(i=0;i<Psize*Psize*Psize;i++)
-        Patch[i]=0.0;
     
     /*center */
     x-=size;
@@ -269,22 +279,30 @@ void ExtractPatch4D_norm(const float* ima, float* Patch, int x,int y, int z, int
     for(i=0;i<Psize;i++)
     {
         int ni1=x+i;
+#ifdef BORDER_PAD_MIRROR
         if(ni1<0) ni1=-ni1;
         else if(ni1>=sx) ni1=2*sx-ni1-1;
+#endif
+        
         for(j=0;j<Psize;j++)
         {
             int nj1=y+j;
-            if(nj1<0) 
-                nj1=-nj1;
-            else if(nj1>=sy) 
-                nj1=2*sy-nj1-1;
+#ifdef BORDER_PAD_MIRROR
+            if(nj1<0) nj1=-nj1;
+            else if(nj1>=sy) nj1=2*sy-nj1-1;
+#endif
             
+            #if _OPENMP>=201307
+              #pragma omp simd
+            #endif  
             for(k=0;k<Psize;k++)
             {
                 int nk1=z+k;
                 float v;
+#ifdef BORDER_PAD_MIRROR
                 if(nk1<0) nk1=-nk1;
                 else if(nk1>=sz) nk1=2*sz-nk1-1;
+#endif
                 
                 v=_frame[ni1*sz*sy+nj1*sz+nk1]-mean;
                 norm+=v*v;
@@ -294,6 +312,11 @@ void ExtractPatch4D_norm(const float* ima, float* Patch, int x,int y, int z, int
     }
     norm=sqrt(norm);
     
+#if _OPENMP>=201307
+    #pragma omp simd
+#endif  
     for(i=0;i<Psize*Psize*Psize;i++)
         Patch[i]/=norm;
 }
+
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */

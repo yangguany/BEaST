@@ -31,16 +31,16 @@ void ComputeSecondMoment(const float* ima,const  float* means, float* variance, 
 void ComputeFirstMoment4D(const float* ima,const float* atlas, float* means, float* Ameans,const int* dims, int f);
 void ComputeSecondMoment4D(const float* ima,const float* atlas,const  float* means,const  float* Ameans, float* variance, float* Avariance,const int* dims,int f);
 
-float SSDPatch(const float* PatchImg, const float* PatchTemplate, int f);
-void ExtractPatch(const float* ima, float* Patch, int x, int y, int z, int size, int sx, int sy, int sz);
-void ExtractPatch4D(const float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz);
+float SSDPatch(const float*  PatchImg, const float*  PatchTemplate, int f);
+void ExtractPatch(const float*  ima, float*  Patch, int x, int y, int z, int size, int sx, int sy, int sz);
+void ExtractPatch4D(const float*  ima, float*  Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz);
 
-void ExtractPatch_norm(const float* ima, float* Patch, int x, int y, int z, int size, int sx, int sy, int sz,float mean);
-void ExtractPatch4D_norm(const float* ima, float* Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz,float mean);
+void ExtractPatch_norm(const float*  ima, float*  Patch, int x, int y, int z, int size, int sx, int sy, int sz,float mean);
+void ExtractPatch4D_norm(const float*  ima, float*  Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz,float mean);
 
 
-void AddWPatch(float* ima,const float* Patch, float w, int x, int y, int z, int size, int sx, int sy, int sz);
-void AddW(float* ima,float w,                          int x, int y, int z, int size, int sx, int sy, int sz);
+void AddWPatch(float*  ima,const float*  Patch, float w, int x, int y, int z, int size, int sx, int sy, int sz);
+void AddW(float*  ima,float w,                          int x, int y, int z, int size, int sx, int sy, int sz);
 
 
 float nlmsegFuzzy4D(const float *subject, const float *imagedata,const  float *maskdata, const float *meandata, 

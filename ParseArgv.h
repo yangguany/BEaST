@@ -26,12 +26,6 @@
  * without ANSI C features like function prototypes.
  */
 
-#undef _ANSI_ARGS_
-#if ((defined(__STDC__) || defined(SABER)) && !defined(NO_PROTOTYPE)) || defined(__cplusplus)
-#   define _ANSI_ARGS_(x)	x
-#else
-#   define _ANSI_ARGS_(x)	()
-#endif
 
 /*
  * Structure used to specify how to handle argv options.
@@ -88,8 +82,8 @@ extern "C" {
 #endif
 
 static void PrintVersion(ArgvInfo *argTable);
-int ParseArgv _ANSI_ARGS_((int *argcPtr, char **argv,
-                                  ArgvInfo *argTable, int flags));
+int ParseArgv(int *argcPtr, char **argv,
+                                  ArgvInfo *argTable, int flags);
 
 #if defined(__cplusplus)
 }

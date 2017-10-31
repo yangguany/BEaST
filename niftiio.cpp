@@ -28,7 +28,7 @@
 
 //#define DEBUG
 
-image_metadata * read_nifti(char *filename, float **image, int *sizes){
+image_metadata * read_nifti(const char *filename, float **image, int *sizes){
   nifti_image *nim;
   float *data;
   int x,y,z,index;
@@ -80,7 +80,7 @@ image_metadata * read_nifti(char *filename, float **image, int *sizes){
 }
 
 
-int write_nifti_generic(char *filename, float *image, image_metadata *meta)
+int write_nifti_generic(const char *filename, const float *image,const image_metadata *meta)
 {
   nifti_image *nim;
   int ll,ntot;

@@ -332,7 +332,7 @@ int cmp_ssd(const void *vp, const void *vq){
 }
 
 
-static inline float get_ssd(const float *I1,const float *I2,const float *mask,const int *sizes){
+static inline float get_ssd(const float *  I1,const float *  I2,const float *  mask,const int *  sizes){
   int j,count=0;
   float ssd=0;
   
@@ -340,12 +340,19 @@ static inline float get_ssd(const float *I1,const float *I2,const float *mask,co
   for (j=0;j<sizes[0];j++){
     int k,l;
     for (k=0;k<sizes[1];k++){
-      for (l=0;l<sizes[2];l++){	  
+      
+      #if _OPENMP>=201307
+        #pragma omp simd
+      #endif  
+      for (l=0;l<sizes[2];l++){
         int index = j*sizes[1]*sizes[2] + k*sizes[2] + l;
-        if (mask[index]>0.0){
-          ssd += SQR(I1[index] - I2[index]);
-          count++;
-        }
+        float msk=mask[index];
+//         if (mask[index]>0.0){
+//           ssd += SQR(I1[index] - I2[index]);
+//           count++;
+//         }
+        ssd+=SQR(I1[index] - I2[index])*msk;
+        count+=msk;
       }
     }
   }

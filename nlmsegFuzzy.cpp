@@ -72,6 +72,9 @@ float nlmsegFuzzy4D(const float *subject,const  float *imagedata,
   int i,v,f,ndim;
   float min,max;
   
+  int patch_volume;
+
+  
   int sadims,volumesize,index;
   int mincount=MINCOUNT;
   int notfinished;
@@ -92,6 +95,10 @@ float nlmsegFuzzy4D(const float *subject,const  float *imagedata,
   
   /*Patch radius*/
   f = sizepatch;
+  
+  /*volume of patch*/
+  patch_volume=(2*f+1)*(2*f+1)*(2*f+1);
+  
   
   /*Search Area radius*/
   v = searcharea;
@@ -169,6 +176,7 @@ float nlmsegFuzzy4D(const float *subject,const  float *imagedata,
             float minidist = FLT_MAX; /*FLT_MAX;*/
             float TMean,TVar;
             
+            //memset(PatchTemp,0,sizeof(float)*patch_volume);
             ExtractPatch(subject, PatchTemp, i, j, k, f, dims[0], dims[1], dims[2]);
             
             TMean = MeansSubj[index];
@@ -205,6 +213,7 @@ float nlmsegFuzzy4D(const float *subject,const  float *imagedata,
                         float d;
                         data_t storage;
                         
+                        //memset(PatchImg,0,sizeof(float)*patch_volume);
                         ExtractPatch4D(imagedata, PatchImg ,ni,nj,nk, t,f, dims[0], dims[1], dims[2]);
                         
                         d =  SSDPatch(PatchImg, PatchTemp, f);

@@ -50,7 +50,7 @@ static ArgvInfo defaultTable[] = {
  * Forward declarations for procedures defined in this file:
  */
 
-static void	PrintUsage _ANSI_ARGS_((ArgvInfo *argTable, int flags));
+static void	PrintUsage(ArgvInfo *argTable, int flags);
 static void     PrintVersion(ArgvInfo *argTable);
 
 /*

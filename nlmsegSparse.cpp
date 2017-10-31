@@ -39,6 +39,8 @@
 static const int MINCOUNT=100;
 static const int MAXITER=5;
 
+//#define INCREASE_RADIUS
+
 
 #ifdef MT_USE_OPENMP
     #include <omp.h>
@@ -187,6 +189,9 @@ float nlmsegSparse4D(const float *subject,const  float *imagedata,
             TMean = MeansSubj[index];
             TVar =  VarsSubj [index];
             
+            
+            //memset(PatchTemp,0,sizeof(float)*patch_volume);
+            
             ExtractPatch_norm(subject, PatchTemp, i, j, k, f, dims[0], dims[1], dims[2], TMean);
             
             /*TODO:apply patch-normalization using Mean and var*/
@@ -220,6 +225,8 @@ float nlmsegSparse4D(const float *subject,const  float *imagedata,
 
                       if(th > threshold)
                       {
+                        //memset(&PatchImg[count*patch_volume],0,sizeof(float)*patch_volume);
+                        
                         ExtractPatch4D_norm(imagedata, &PatchImg[count*patch_volume] ,ni,nj,nk, t, f, dims[0], dims[1], dims[2], Mean);
                         ExtractPatch4D(maskdata,  &PatchMask[count*patch_volume] ,ni,nj,nk, t, f, dims[0], dims[1], dims[2]);
                         
@@ -266,7 +273,6 @@ float nlmsegSparse4D(const float *subject,const  float *imagedata,
                         {
                             AddWPatch(SegAccum,&PatchMask[p*patch_volume],w/totalweight, i, j, k, f, dims[0], dims[1], dims[2]);
                             AddW(SegNorm,w/totalweight,                                  i, j, k, f, dims[0], dims[1], dims[2]);
-                            //printf("%f ",w/totalweight);
                         }
                     }                    
                     
@@ -326,7 +332,9 @@ float nlmsegSparse4D(const float *subject,const  float *imagedata,
       int count=0;
       threshold=threshold*0.95;
       mincount=mincount*0.95;
+#ifdef INCREASE_RADIUS      
       v=v+1;
+#endif
       
       #pragma omp parallel for  shared(SegSubject,PatchCount,localmask) reduction(+:count) 
       for(i=0;i<dims[0];i++)
@@ -363,7 +371,7 @@ float nlmsegSparse4D(const float *subject,const  float *imagedata,
 
   if(notfinished) /*stopped early*/
   {
-      
+      /*TODO: report?*/
   }
   
   for(i=0;i<omp_get_max_threads();i++)
@@ -401,3 +409,6 @@ float nlmsegSparse4D(float *subject, float *imagedata,
 }
 #endif //USE_SPAMS
 
+
+
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */

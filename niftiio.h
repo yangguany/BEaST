@@ -28,7 +28,7 @@
 
 #include "beast.h"
 
-image_metadata * read_nifti(char *filename, float **image, int *sizes);
-int write_nifti_generic(char *filename, float *image, image_metadata *meta);
+image_metadata * read_nifti(const char *filename, float **image, int *sizes);
+int write_nifti_generic(const char *filename,const float *image,const image_metadata *meta);
 
 #endif
