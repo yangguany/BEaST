@@ -168,6 +168,7 @@ int mincbeast_v1(beast_options * _options)
     }
     initialscale=-1;
     targetscale=4;
+    
     for (i=0; i<steps; i++) {
       scale=(int)(input_conf[i].voxelsize/2);
       configuration[scale].voxelsize=input_conf[i].voxelsize;
@@ -202,8 +203,11 @@ int mincbeast_v1(beast_options * _options)
   means =  alloc_3d_char(3, MAXLIBSIZE, FILENAMELENGTH);
   vars =   alloc_3d_char(3, MAXLIBSIZE, FILENAMELENGTH);
 
-  /*for (scale=initialscale;scale>=0;scale--){*/
-  for (scale=2; scale>=0; scale--) {
+  for (scale=initialscale;scale>=0;scale--){
+    fprintf(stderr,"%d: %d %d %d %4.2lf %4.2lf %4.2lf %d\n",scale,
+            configuration[scale].voxelsize, configuration[scale].patchsize, configuration[scale].searcharea,
+            configuration[scale].alpha,     configuration[scale].beta, configuration[scale].threshold, configuration[scale].selectionsize);
+    
 
     sprintf(imagelist,"%s/%s.stx.%dmm", _options->libdir, _options->library_prefix, scales[scale]);
     sprintf(masklist,"%s/%s.masks.%dmm",_options->libdir, _options->library_prefix, scales[scale]);
@@ -218,7 +222,9 @@ int mincbeast_v1(beast_options * _options)
     }
 
     if ( num_images<configuration[scale].selectionsize ) {
-      fprintf(stderr,"ERROR! Cannot select more images than in the library!\n\tlibrary images: %d\n\tselection: %d\n",num_images,configuration[scale].selectionsize);
+      fprintf(stderr,"ERROR! Cannot select more images than in the library!\n"
+                     "\tlibrary images: %d\n"
+                     "\tselection: %d\n",num_images,configuration[scale].selectionsize);
       return STATUS_ERR;
     }
 

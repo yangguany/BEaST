@@ -223,7 +223,13 @@ INSTALL(TARGETS
         #mincbeast-v2
         RUNTIME DESTINATION bin )
 
+IF(BUILD_TESTING)
+   ADD_SUBDIRECTORY( Testing )
+ENDIF(BUILD_TESTING)
+
 # VF: now this will be in a separate project
 # INSTALL(DIRECTORY free_database/
 #         DESTINATION share/mincbeast_free )
 # TODO download and create average models
+
+
