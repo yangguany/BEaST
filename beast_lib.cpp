@@ -939,34 +939,7 @@ int write_volume_generic(const char *filename,const float *data,const image_meta
 }
 
 
-char* create_minc_timestamp(int argc,char *argv[])
-{
-  char *timestamp;
-  char cur_time[1024];
-  time_t t;
-  struct tm *tmp;
-  size_t str_len;
-  int i;
 
-  t = time(NULL);
-  tmp = localtime(&t);
-  
-  strftime(cur_time, sizeof(cur_time), "%a %b %d %T %Y>>>", tmp);
-  /* Get the time, overwriting newline */
-  str_len=strlen(cur_time);
-  for (i=0; i<argc; i++) 
-    str_len+=strlen(argv[i])+1;
-  
-  timestamp=(char *)malloc(str_len+3);
-  strcpy(timestamp,cur_time);
-  
-  /* Copy the program name and arguments */
-  for (i=0; i<argc; i++) {
-    strcat(timestamp,argv[i]);
-    strcat(timestamp," ");
-  }
-  strcat(timestamp,"\n");
-  return timestamp;
-}
 
 /* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */
+

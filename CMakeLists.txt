@@ -148,11 +148,13 @@ SET(BEAST_SRC
   nlmsegSparse.cpp
   label.cpp
   ParseArgv.c
+  beast_config.cpp
+  mincbeast_v1.cpp
+  mincbeast_v2.cpp
 )
 
 IF(HAVE_SPAMS)
     SET(BEAST_SRC ${BEAST_SRC} ${SPAMS_SRC})
-
     
     # test SPAMS
     ADD_EXECUTABLE(spams_test
@@ -161,8 +163,6 @@ IF(HAVE_SPAMS)
     
     TARGET_LINK_LIBRARIES( spams_test
                   ${OpenBLAS_LIBRARY} )
-    
-    
 ENDIF(HAVE_SPAMS)
 
 IF(LIBMINC_FOUND)
@@ -205,12 +205,12 @@ ENDIF(HAVE_SPAMS)
 ADD_EXECUTABLE(mincbeast
   mincbeast.cpp
 )
-ADD_EXECUTABLE(mincbeast-v2
-  mincbeast-v2.cpp
-)
+# ADD_EXECUTABLE(mincbeast-v2
+#   mincbeast-v2.cpp
+# )
 
 TARGET_LINK_LIBRARIES(mincbeast beast m)
-TARGET_LINK_LIBRARIES(mincbeast-v2 beast m)
+# TARGET_LINK_LIBRARIES(mincbeast-v2 beast m)
 
 IF(LIBMINC_FOUND AND USE_NIFTI)
   ADD_EXECUTABLE(minc2nifti
@@ -223,7 +223,7 @@ ADD_SUBDIRECTORY (scripts)
 
 INSTALL(TARGETS 
         mincbeast
-        mincbeast-v2
+        #mincbeast-v2
         RUNTIME DESTINATION bin )
 
 # VF: now this will be in a separate project
