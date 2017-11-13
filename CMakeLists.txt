@@ -194,23 +194,20 @@ ADD_LIBRARY(beast  STATIC
   ${BEAST_SRC}
 )
 
-TARGET_LINK_LIBRARIES(beast ${VOLUME_IO_LIBRARIES} ${LIBMINC_LIBRARIES} )
+TARGET_LINK_LIBRARIES(beast 
+    ${VOLUME_IO_LIBRARIES} 
+    ${LIBMINC_LIBRARIES} )
 
 IF(HAVE_SPAMS)
   TARGET_LINK_LIBRARIES( beast
                   ${OpenBLAS_LIBRARY} )
 ENDIF(HAVE_SPAMS)
 
-
 ADD_EXECUTABLE(mincbeast
   mincbeast.cpp
 )
-# ADD_EXECUTABLE(mincbeast-v2
-#   mincbeast-v2.cpp
-# )
 
 TARGET_LINK_LIBRARIES(mincbeast beast m)
-# TARGET_LINK_LIBRARIES(mincbeast-v2 beast m)
 
 IF(LIBMINC_FOUND AND USE_NIFTI)
   ADD_EXECUTABLE(minc2nifti
