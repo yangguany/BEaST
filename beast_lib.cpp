@@ -333,8 +333,9 @@ int cmp_ssd(const void *vp, const void *vq){
 
 
 static inline float get_ssd(const float *  I1,const float *  I2,const float *  mask,const int *  sizes){
-  int j,count=0;
-  float ssd=0;
+  int j;
+  float count=0.0;
+  float ssd=0.0;
   
   #pragma omp parallel for reduction(+:ssd) reduction(+:count)
   for (j=0;j<sizes[0];j++){
@@ -360,6 +361,37 @@ static inline float get_ssd(const float *  I1,const float *  I2,const float *  m
   ssd /= count;
   return ssd;
 }
+
+static inline float get_ssd_double(const float *  I1,const float *  I2,const float *  mask,const int *  sizes){
+  int j;
+  double count=0.0;
+  double ssd=0;
+  
+  #pragma omp parallel for reduction(+:ssd) reduction(+:count)
+  for (j=0;j<sizes[0];j++){
+    int k,l;
+    for (k=0;k<sizes[1];k++){
+      
+      #if _OPENMP>=201307
+        #pragma omp simd
+      #endif  
+      for (l=0;l<sizes[2];l++){
+        int index = j*sizes[1]*sizes[2] + k*sizes[2] + l;
+        double msk=mask[index];
+//         if (mask[index]>0.0){
+//           ssd += SQR(I1[index] - I2[index]);
+//           count++;
+//         }
+        ssd+=SQR(I1[index] - I2[index])*msk;
+        count+=msk;
+      }
+    }
+  }
+  
+  ssd /= count;
+  return ssd;
+}
+
 
 int down_sample(float *subject, float *result, int factor, int *sizes){
   int i;
@@ -866,6 +898,60 @@ int pre_selection(const float *subject, const float *mask,
   return STATUS_OK;
 }
 
+int pre_selection_double(const float *subject, const float *mask, 
+                  char **images, const int *sizes, 
+                  int librarysize, int num_selected, int *selection, 
+                  const char *outfile, VIO_BOOL verbose)
+{
+  int i;
+  int volumesize;
+  ssd_td *ssd;
+  FILE *fd=NULL;
+  int _sizes[5];
+
+  fprintf(stderr,"Performing pre-selection ");
+
+  volumesize=sizes[0]*sizes[1]*sizes[2];
+  ssd = (ssd_td *)malloc(librarysize*sizeof(ssd_td));
+
+  fprintf(stderr,"(%ld MB/subject)",volumesize*sizeof(float)/(1024*1024));
+  
+  /*#pragma omp parallel for */
+  for (i=0;i<librarysize;i++)
+  {
+    float *imagedata;
+    image_metadata *_meta;
+    fprintf(stderr,".");
+
+    _meta=read_volume(images[i], &imagedata, _sizes);
+    /*TODO:compare sizes and _sizes ?*/
+
+    ssd[i].index=i;
+    ssd[i].ssd=get_ssd_double(subject,imagedata,mask,sizes);
+    
+    free(imagedata);
+    free_meta(_meta);
+  }
+
+  qsort(ssd, librarysize, sizeof(ssd_t), cmp_ssd);
+
+  fprintf(stderr,"done\n");
+
+  if (outfile!=NULL)
+    fd = fopen(outfile,"a");
+  else
+    fd = stderr;
+
+  for (i=0;i<num_selected;i++){   
+    selection[i] = ssd[i].index;
+    if ((verbose) || (outfile!=NULL)) fprintf(fd,"%s %f\n",images[selection[i]],ssd[i].ssd);
+  }
+  
+  if (outfile!=NULL)
+    fclose(fd);
+  free(ssd);
+  return STATUS_OK;
+}
 
 
 image_metadata * read_volume(const char *filename, float **data,int *sizes){

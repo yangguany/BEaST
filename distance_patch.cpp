@@ -24,6 +24,7 @@
 
 
 #include <math.h>
+#include "basic.h"
 
 float SSDPatch(const float*    PatchImg, const float*    PatchTemplate, int f)
 {
@@ -35,7 +36,7 @@ float SSDPatch(const float*    PatchImg, const float*    PatchTemplate, int f)
     
     for(i=0; i< (2*f+1)*(2*f+1)*(2*f+1);i++)
     {
-        d = d + (PatchImg[i] - PatchTemplate[i]) * (PatchImg[i] - PatchTemplate[i]);
+        d = d + SQR(PatchImg[i] - PatchTemplate[i]);
         indice++;
         
     }
@@ -45,6 +46,27 @@ float SSDPatch(const float*    PatchImg, const float*    PatchTemplate, int f)
     return d;
     
 }
+
+double SSDPatch_double(const float*    PatchImg, const float*    PatchTemplate, int f)
+{
+    /*SSD */
+    double d;
+    int i,indice;
+    indice =0;
+    d = 0.0;
+    
+    for(i=0; i< (2*f+1)*(2*f+1)*(2*f+1);i++)
+    {
+        d = d + SQR((double)(PatchImg[i] - PatchTemplate[i]));
+        indice++;
+        
+    }
+    
+    d=d/indice;
+    
+    return d;
+}
+
 
 
 float SSDPatchMean(const float* PatchImg, const float* PatchTemplate, int f, float Mean, float TMean)

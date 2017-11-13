@@ -252,7 +252,11 @@ int mincbeast_v2(beast_options * _options)
   
   /*perform selection before */
   selection = (int *)malloc(_options->selectionsize*sizeof(*selection));
-  pre_selection(subject[0], mask[0], images[0], sizes[0], num_images, _options->selectionsize, selection, selection_file, _options->verbose);
+  
+  if(_options->use_double)
+    pre_selection_double(subject[0], mask[0], images[0], sizes[0], num_images, _options->selectionsize, selection, selection_file, _options->verbose);
+  else
+    pre_selection(subject[0], mask[0], images[0], sizes[0], num_images, _options->selectionsize, selection, selection_file, _options->verbose);
 
   imagedata = (float *)malloc(_options->selectionsize*volumesize*sizeof(float));
   maskdata =  (float *)malloc(_options->selectionsize*volumesize*sizeof(float));
@@ -331,7 +335,15 @@ int mincbeast_v2(beast_options * _options)
     wipe_data(segsubject[scale], sizes[scale] ,0.0);
 
     if(_options->use_sparse) {
-#ifdef USE_SPAMS    
+#ifdef USE_SPAMS
+      if(_options->use_double)
+        max = nlmsegSparse4D_double(subject[scale], _imagedata, _maskdata, _meandata, _vardata, mask[scale], 
+                        configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
+                        configuration[scale].threshold, sizes[scale], 
+                        _options->selectionsize, segsubject[scale], patchcount[scale],
+                        _options->lambda1, _options->lambda2, _options->sparse_mode, _options->sparse_stride
+                        );
+      else
         max = nlmsegSparse4D(subject[scale], _imagedata, _maskdata, _meandata, _vardata, mask[scale], 
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
                         configuration[scale].threshold, sizes[scale], 
@@ -340,6 +352,13 @@ int mincbeast_v2(beast_options * _options)
                         );
 #endif
     }  else {
+      
+      if(_options->use_double)
+        max = nlmsegFuzzy4D_double(subject[scale], _imagedata, _maskdata, _meandata, _vardata, mask[scale], 
+                        configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
+                        configuration[scale].threshold, sizes[scale], _options->selectionsize, segsubject[scale], patchcount[scale]
+                           );
+      else
         max = nlmsegFuzzy4D(subject[scale], _imagedata, _maskdata, _meandata, _vardata, mask[scale], 
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
                         configuration[scale].threshold, sizes[scale], _options->selectionsize, segsubject[scale], patchcount[scale]

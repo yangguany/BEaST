@@ -154,7 +154,6 @@ typedef struct {
 
 #define DTOR 0.017453293
 
-#define SQR(a) ((a)*(a))
 #define SET_3DPOINT(p,a,b,c) (p).x=(a); (p).y=(b); (p).z=(c)
 #define ADD_3DPOINT(p,p1,p2) (p).x=(p1).x+(p2).x; (p).y=(p1).y+(p2).y; (p).z=(p1).z+(p2).z
 #define SUB_3DPOINT(p,p1,p2) (p).x=(p1).x-(p2).x; (p).y=(p1).y-(p2).y; (p).z=(p1).z-(p2).z 

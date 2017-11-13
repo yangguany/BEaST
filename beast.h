@@ -56,11 +56,16 @@
 extern const char LICENSE[];
 extern const char REFERENCE[];
 
-
 typedef struct {
   int index;
   float ssd;
 } ssd_t;
+
+typedef struct {
+  int index;
+  double ssd;
+} ssd_td;
+
 
 typedef struct { /*beast algorithm parameters*/
   int voxelsize;
@@ -95,11 +100,12 @@ typedef struct  { /*micnbeast command line options*/
   VIO_BOOL patchfilter;
   VIO_BOOL abspath;
   VIO_BOOL same_res;
-  VIO_BOOL clobber    ;
-  VIO_BOOL nomask     ;
-  VIO_BOOL nopositive ;
+  VIO_BOOL clobber   ;
+  VIO_BOOL nomask    ;
+  VIO_BOOL nopositive;
   VIO_BOOL use_sparse;
   VIO_BOOL v2;
+  VIO_BOOL use_double;
 
   int voxelsize;
   int sizepatch;
@@ -140,10 +146,18 @@ int add_mask_data(float *data1, float *mask, int *sizes);
 int wipe_data(float *data1, int *sizes, float value);
 int update_mask(float *subject, float *mask, float *segmented, int *sizes, float min, float max);
 
-int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int sz, float fill_value, int connectivity);
+int flood_fill_float(float *data, float *output, int *sizes, 
+                     int sx, int sy, int sz, float fill_value, int connectivity);
 
 int pre_selection(const float *subject, const float *mask, 
                   char **images,        const int *sizes, 
+                  int librarysize,      int num_selected, 
+                  int *selection, 
+                  const char *outfile, 
+                  VIO_BOOL verbose);
+
+int pre_selection_double(const float *subject, const float *mask, 
+                  char **images, const int *sizes, 
                   int librarysize, int num_selected, int *selection, 
                   const char *outfile, VIO_BOOL verbose);
 
@@ -157,7 +171,6 @@ char* create_minc_timestamp(int argc,char *argv[]);
 
 int get_arguments(int argc, char  *argv[] , beast_options * _options);
 void cleanup_arguments(beast_options * _options);
-
 
 int mincbeast_v1(beast_options * _options);
 int mincbeast_v2(beast_options * _options);

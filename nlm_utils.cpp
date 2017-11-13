@@ -319,4 +319,248 @@ void ExtractPatch4D_norm(const float*  ima, float*  Patch, int x,int y, int z, i
         Patch[i]/=norm;
 }
 
+
+
+
+void ExtractPatch_double(const float*  ima, double*  Patch, int x, int y, int z, int size, int sx, int sy, int sz)
+{    
+  int i,j,k;
+  //int ni1, nj1, nk1;
+  int Psize = 2*size +1;
+  
+  
+  for(i=-size;i<=size;i++)
+  {
+      int ni1=x+i;
+      if(ni1<0) ni1=-ni1;
+      else if(ni1>=sx) ni1=2*sx-ni1-1;
+      
+      for(j=-size;j<=size;j++)
+      {
+          int nj1=y+j;
+          if(nj1<0) nj1=-nj1;
+          else if(nj1>=sy) nj1=2*sy-nj1-1;
+          
+          for(k=-size;k<=size;k++)
+          {
+              int nk1=z+k;
+              if(nk1<0) nk1=-nk1;
+              else if(nk1>=sz) nk1=2*sz-nk1-1;
+              
+              Patch[(i+size)*(Psize*Psize)+((j+size)*Psize)+(k+size)] = ima[ni1*(sz*sy)+(nj1*sz)+nk1];
+          }
+      }
+  }
+}
+
+void AddWPatch_double(double*  ima,const double*  Patch, double w, int x, int y, int z, int size, int sx, int sy, int sz)
+{    
+  int i,j,k;
+  int ni1, nj1, nk1;
+  int Psize = 2*size +1;
+  
+  for(i=-size;i<=size;i++)
+    {
+      for(j=-size;j<=size;j++)
+        {
+          for(k=-size;k<=size;k++)
+                  {
+              ni1=x+i;
+              nj1=y+j;
+              nk1=z+k;
+              
+              if(ni1>=0 && nj1>=0 && nk1>=0 &&
+                 ni1<sx && nj1<sy && nk1<sz )
+              {
+                  ima[ni1*(sz*sy)+(nj1*sz)+nk1] += Patch[(i+size)*(Psize*Psize)+((j+size)*Psize)+(k+size)]*w;
+              }
+            }
+        }
+    }  
+}
+
+void AddW_double(double*  ima,double w, int x, int y, int z, int size, int sx, int sy, int sz)
+{    
+  int i,j,k;
+  int ni1, nj1, nk1;
+  int Psize = 2*size +1;
+  
+  for(i=-size;i<=size;i++)
+    {
+      for(j=-size;j<=size;j++)
+        {
+          for(k=-size;k<=size;k++)
+            {
+              ni1=x+i;
+              nj1=y+j;
+              nk1=z+k;
+              
+              if(ni1>=0 && nj1>=0 && nk1>=0 &&
+                 ni1<sx && nj1<sy && nk1<sz )
+              {
+                  ima[ni1*(sz*sy)+(nj1*sz)+nk1]+=w;
+              }
+            }
+        }
+    }  
+}
+
+
+
+void ExtractPatch4D_double(const float*  ima, double*  Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz)
+{
+    
+    int i,j,k;
+    int Psize = 2*size +1;
+    /*find the image in the stack*/
+    const float *  _frame=ima+t*(sx*sy*sz);
+    
+    /*center */
+    x-=size;
+    y-=size;
+    z-=size;
+    
+    for(i=0;i<Psize;i++)
+    {
+        int ni1=x+i;
+#ifdef BORDER_PAD_MIRROR
+        if(ni1<0) ni1=-ni1;
+        else if(ni1>=sx) ni1=2*sx-ni1-1;
+#endif
+        for(j=0;j<Psize;j++)
+        {
+            int nj1=y+j;
+#ifdef BORDER_PAD_MIRROR
+            if(nj1<0) 
+                nj1=-nj1;
+            else if(nj1>=sy) 
+                nj1=2*sy-nj1-1;
+#endif
+      #if _OPENMP>=201307
+        #pragma omp simd
+      #endif  
+            for(k=0;k<Psize;k++)
+            {
+                int nk1=z+k;
+#ifdef BORDER_PAD_MIRROR
+                if(nk1<0) nk1=-nk1;
+                else if(nk1>=sz) nk1=2*sz-nk1-1;
+#endif
+                Patch[i*Psize*Psize+j*Psize+k]=_frame[ni1*sz*sy+nj1*sz+nk1];
+            }
+        }
+    }
+}
+
+
+void ExtractPatch_norm_double(const float*  ima, double*  Patch, int x, int y, int z, int size, int sx, int sy, int sz,double mean)
+{    
+  int i,j,k;
+  int Psize = 2*size +1;
+  double norm=0.0;
+  
+  for(i=-size;i<=size;i++)
+  {
+      int ni1=x+i;
+#ifdef BORDER_PAD_MIRROR
+      if(ni1<0) ni1=-ni1;
+      else if(ni1>=sx) ni1=2*sx-ni1-1;
+#endif
+      
+      for(j=-size;j<=size;j++)
+      {
+        int nj1=y+j;
+#ifdef BORDER_PAD_MIRROR
+        if(nj1<0) nj1=-nj1;
+        else if(nj1>=sy) nj1=2*sy-nj1-1;
+#endif
+
+      #if _OPENMP>=201307
+        #pragma omp simd
+      #endif  
+      for(k=-size;k<=size;k++)
+        {
+              double v;
+              int nk1=z+k;
+                    
+#ifdef BORDER_PAD_MIRROR
+              if(nk1<0) nk1=-nk1;
+              else if(nk1>=sz) nk1=2*sz-nk1-1;
+#endif
+                    
+              v=ima[ni1*(sz*sy)+(nj1*sz)+nk1]-mean;
+              norm+=v*v;
+              Patch[(i+size)*(Psize*Psize)+((j+size)*Psize)+(k+size)] = v;
+        }
+    }
+  }  
+  norm=sqrt(norm);
+  
+#if _OPENMP>=201307
+    #pragma omp simd
+#endif  
+  for(i=0;i<Psize*Psize*Psize;i++)
+    Patch[i]/=norm;
+}
+
+
+void ExtractPatch4D_norm_double(const float*  ima, double*  Patch, int x,int y, int z, int t,int size,int sx,int sy,int sz,double mean)
+{
+    
+    int i,j,k;
+    int Psize = 2*size +1;
+    /*find the image in the stack*/
+    const float *  _frame=ima+t*(sx*sy*sz);
+    double norm=0.0;
+    
+    /*center */
+    x-=size;
+    y-=size;
+    z-=size;
+    
+    for(i=0;i<Psize;i++)
+    {
+        int ni1=x+i;
+#ifdef BORDER_PAD_MIRROR
+        if(ni1<0) ni1=-ni1;
+        else if(ni1>=sx) ni1=2*sx-ni1-1;
+#endif
+        
+        for(j=0;j<Psize;j++)
+        {
+            int nj1=y+j;
+#ifdef BORDER_PAD_MIRROR
+            if(nj1<0) nj1=-nj1;
+            else if(nj1>=sy) nj1=2*sy-nj1-1;
+#endif
+            
+            #if _OPENMP>=201307
+              #pragma omp simd
+            #endif  
+            for(k=0;k<Psize;k++)
+            {
+                int nk1=z+k;
+                double v;
+#ifdef BORDER_PAD_MIRROR
+                if(nk1<0) nk1=-nk1;
+                else if(nk1>=sz) nk1=2*sz-nk1-1;
+#endif
+                
+                v=_frame[ni1*sz*sy+nj1*sz+nk1]-mean;
+                norm+=v*v;
+                Patch[i*Psize*Psize+j*Psize+k]=v;
+            }
+        }
+    }
+    norm=sqrt(norm);
+    
+#if _OPENMP>=201307
+    #pragma omp simd
+#endif  
+    for(i=0;i<Psize*Psize*Psize;i++)
+        Patch[i]/=norm;
+}
+
+
+
 /* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */

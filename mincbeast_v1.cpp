@@ -273,7 +273,12 @@ int mincbeast_v1(beast_options * _options)
     int selection_size=configuration[scale].selectionsize;
     
     selection = (int *)malloc(configuration[scale].selectionsize*sizeof(*selection));
-    pre_selection(subject[scale], mask[scale], images[scale], sizes[scale], num_images, 
+    
+    if(_options->use_double)
+      pre_selection_double(subject[scale], mask[scale], images[scale], sizes[scale], num_images, 
+                  configuration[scale].selectionsize, selection, _options->selection_file,_options->verbose);
+    else
+      pre_selection(subject[scale], mask[scale], images[scale], sizes[scale], num_images, 
                   configuration[scale].selectionsize, selection, _options->selection_file,_options->verbose);
 
     if (_options->verbose) fprintf(stderr,"Performing segmentation at %dmm resolution\nReading files ",scales[scale]);
@@ -371,14 +376,26 @@ int mincbeast_v1(beast_options * _options)
       selection_size=configuration[scale].selectionsize*2;
     }
     if(_options->use_sparse) {
-#ifdef USE_SPAMS    
-        max = nlmsegSparse4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
+#ifdef USE_SPAMS
+        if(_options->use_double)
+          max = nlmsegSparse4D_double(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
+                        configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
+                        configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale],
+                        _options->lambda1,_options->lambda2,_options->sparse_mode,_options->sparse_stride
+                            );
+        else
+          max = nlmsegSparse4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
                         configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale],
                         _options->lambda1,_options->lambda2,_options->sparse_mode,_options->sparse_stride
                             );
 #endif
     }  else {
+      if(_options->use_double)
+        max = nlmsegFuzzy4D_double(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
+                        configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
+                        configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale]);
+      else
         max = nlmsegFuzzy4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
                         configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale]);

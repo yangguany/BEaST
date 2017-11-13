@@ -69,10 +69,7 @@ char* create_minc_timestamp(int argc,char *argv[])
   return timestamp;
 }
 
-
-
-
-int get_arguments(int argc, char  *argv[] , beast_options * _options)
+int init_arguments(beast_options * _options)
 {
   _options->sparse_stride=1;
   _options->lambda1      = 0.15;
@@ -92,6 +89,8 @@ int get_arguments(int argc, char  *argv[] , beast_options * _options)
   _options->nopositive   = FALSE;
   _options->use_sparse   = FALSE;
   _options->v2           = FALSE;
+  _options->use_double   = FALSE;
+  
   _options->voxelsize    = 4;
   _options->sizepatch    = 1;
   _options->searcharea   = 2;
@@ -105,8 +104,15 @@ int get_arguments(int argc, char  *argv[] , beast_options * _options)
   _options->conf_file   = NULL;
   _options->mask_file   = NULL;
   _options->library_prefix = "library";
-  
+}
 
+
+
+
+int get_arguments(int argc, char  *argv[] , beast_options * _options)
+{
+  init_arguments(_options);
+  
   /* Argument table */
   ArgvInfo argTable[] = {
     {
@@ -242,6 +248,10 @@ int get_arguments(int argc, char  *argv[] , beast_options * _options)
     {
       "-v2", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->v2,
       "Run mincbeast v2 (preselection done onece at 1mm)."
+    },
+    {
+      "-double", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->use_double,
+      "Use double precision for calculations."
     },
     
     {NULL, ARGV_END, NULL, NULL, NULL}
