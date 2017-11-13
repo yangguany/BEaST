@@ -155,7 +155,7 @@ int mincbeast_v2(beast_options * _options)
     for(j=0;j<3;j++)
       sizes[i][j]=sizes[i-1][j]/2;
   }
-  
+
   /* make the downsampled masks crisp */
   threshold_data( mask[1], sizes[1], 0.5);
   threshold_data( mask[2], sizes[2], 0.5);
@@ -171,7 +171,6 @@ int mincbeast_v2(beast_options * _options)
     configuration[i].threshold  = _options->threshold;
     configuration[i].selectionsize = _options->selectionsize;
   }
-  
 
 
   if (_options->conf_file != NULL) {

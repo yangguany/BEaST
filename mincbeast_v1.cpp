@@ -480,3 +480,5 @@ int mincbeast_v1(beast_options * _options)
   
   return STATUS_OK;
 }
+
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */
