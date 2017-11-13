@@ -101,208 +101,176 @@ struct beast_options
 };
 
 
-int main(int argc, char  *argv[] )
+int get_arguments(int argc, char  *argv[] , beast_options * _options)
 {
-  beast_options _options;
+  _options->sparse_stride=1;
+  _options->lambda1      = 0.15;
+  _options->lambda2      = 0.0;
+  _options->sparse_mode  = 2;
+  _options->outputprob   = FALSE;
+  _options->flipimages   = FALSE;
+  _options->load_moments = FALSE;
+  _options->fill_output  = FALSE;
+  _options->verbose      = FALSE;
+  _options->medianfilter = FALSE;
+  _options->patchfilter  = FALSE;
+  _options->abspath      = FALSE;
+  _options->same_res     = TRUE;
+  _options->clobber      = FALSE;
+  _options->nomask       = FALSE;
+  _options->nopositive   = FALSE;
+  _options->use_sparse   = FALSE;
+  _options->voxelsize    = 4;
+  _options->sizepatch    = 1;
+  _options->searcharea   = 2;
+  _options->alpha        = 0.5;
+  _options->beta         = 0.25;
+  _options->threshold    = 0.95;
+  _options->selectionsize = 20;
+  _options->positive_file = NULL;
+  _options->selection_file= NULL;
+  _options->count_file  = NULL;
+  _options->conf_file   = NULL;
+  _options->mask_file   = NULL;
+  _options->library_prefix = "library";
   
-  char imagelist[FILENAMELENGTH], masklist[FILENAMELENGTH], meanlist[FILENAMELENGTH], varlist[FILENAMELENGTH];
-  char ***images, ***masks,***means,***vars;
-  int num_images,i,sizes[3][5],tmpsizes[5],volumesize,*selection,steps=3,filled=0;
-  float *imagedata,*maskdata,*meandata,*vardata,**subject,**mask,**positivemask=NULL,**segsubject,**patchcount,**filtered;
-  float max,min;
-  float **segmented;
-  float *tempdata;
   
-  _options.sparse_stride=1;
-  int scale, scaledvolumesize, scales[3] = {1,2,4};
-  int masksize=0, initialscale, targetscale, scalesteps;
-  
-  beast_conf input_conf[3],configuration[3];
-  image_metadata **meta;
-  image_metadata *mask_meta;
-  image_metadata *temp_meta;
-  time_t timer;
-
-  _options.lambda1      = 0.15;
-  _options.lambda2      = 0.0;
-  _options.sparse_mode  = 2;
-  _options.outputprob   = FALSE;
-  _options.flipimages   = FALSE;
-  _options.load_moments = FALSE;
-  _options.fill_output  = FALSE;
-  _options.verbose      = FALSE;
-  _options.medianfilter = FALSE;
-  _options.patchfilter  = FALSE;
-  _options.abspath      = FALSE;
-  _options.same_res     = TRUE;
-  _options.clobber      = FALSE;
-  _options.nomask       = FALSE;
-  _options.nopositive   = FALSE;
-  _options.use_sparse   = FALSE;
-  _options.voxelsize    = 4;
-  _options.sizepatch    = 1;
-  _options.searcharea   = 2;
-  _options.alpha        = 0.5;
-  _options.beta         = 0.25;
-  _options.threshold    = 0.95;
-  _options.selectionsize = 20;
-  _options.positive_file = NULL;
-  _options.selection_file= NULL;
-  _options.count_file  = NULL;
-  _options.conf_file   = NULL;
-  _options.mask_file   = NULL;
-  _options.library_prefix = "library";
-
-  const char *default_beast_library=BEAST_LIBRARY_PREFIX;
-  const char *default_beast_mask=BEAST_LIBRARY_PREFIX"/margin_mask.mnc";
-  const char *default_beast_positive_file=BEAST_LIBRARY_PREFIX"/intersection_mask.mnc";
-  const char *default_beast_config=BEAST_LIBRARY_PREFIX"/default.2mm.conf";
-
   /* Argument table */
   ArgvInfo argTable[] = {
     {
-      "-probability", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.outputprob,
+      "-probability", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->outputprob,
       "Output the probability map instead of crisp mask."
     },
     {
-      "-flip", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.flipimages,
+      "-flip", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->flipimages,
       "Flip images around the mid-sagittal plane to increase patch count."
     },
     {
-      "-load_moments", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.load_moments,
+      "-load_moments", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->load_moments,
       "Do not calculate moments instead use precalculated library moments. (for optimization purposes)"
     },
     {
-      "-fill", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.fill_output,
+      "-fill", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->fill_output,
       "Fill holes in the binary output."
     },
     {
-      "-median", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.medianfilter,
+      "-median", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->medianfilter,
       "Apply a median filter on the probability map."
     },
     {
-      "-nlm_filter", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.patchfilter,
+      "-nlm_filter", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->patchfilter,
       "Apply an NLM filter on the probability map (experimental)."
     },
     {
-      "-verbose", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.verbose,
+      "-verbose", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->verbose,
       "Enable verbose output."
     },
     {
-      "-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.clobber,
+      "-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->clobber,
       "Clobber output files"
     },
     {
-      "-abspath", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.abspath,
+      "-abspath", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->abspath,
       "File paths in the library are absolute (default is relative to library root)."
     },
 
     {
-      "-voxel_size", ARGV_INT, (char *) 1, (char *) &_options.voxelsize,
+      "-voxel_size", ARGV_INT, (char *) 1, (char *) &_options->voxelsize,
       "Specify voxel size for calculations (4, 2, or 1). Assumes no multiscale. Use configuration file for multiscale."
     },
     {
-      "-patch_size", ARGV_INT, (char *) 1, (char *) &_options.sizepatch,
+      "-patch_size", ARGV_INT, (char *) 1, (char *) &_options->sizepatch,
       "Specify patch size for single scale approach."
     },
     {
-      "-search_area", ARGV_INT, (char *) 1, (char *) &_options.searcharea,
+      "-search_area", ARGV_INT, (char *) 1, (char *) &_options->searcharea,
       "Specify size of search area for single scale approach."
     },
     {
-      "-alpha", ARGV_FLOAT, (char *) 1, (char *) &_options.alpha,
+      "-alpha", ARGV_FLOAT, (char *) 1, (char *) &_options->alpha,
       "Specify confidence level Alpha."
     },
     {
-      "-beta", ARGV_FLOAT, (char *) 1, (char *) &_options.beta,
+      "-beta", ARGV_FLOAT, (char *) 1, (char *) &_options->beta,
       "Specify smoothness factor Beta."
     },
     {
-      "-threshold", ARGV_FLOAT, (char *) 1, (char *) &_options.threshold,
+      "-threshold", ARGV_FLOAT, (char *) 1, (char *) &_options->threshold,
       "Specify threshold for patch selection."
     },
     {
-      "-selection_num", ARGV_INT, (char *) 1, (char *) &_options.selectionsize,
+      "-selection_num", ARGV_INT, (char *) 1, (char *) &_options->selectionsize,
       "Specify number of selected images."
     },
 
     {
-      "-positive", ARGV_STRING, (char *) 1, (char *) &_options.positive_file,
+      "-positive", ARGV_STRING, (char *) 1, (char *) &_options->positive_file,
       "Specify mask of positive segmentation (inside mask) instead of the default mask."
     },
     {
-      "-output_selection", ARGV_STRING, (char *) 1, (char *) &_options.selection_file,
+      "-output_selection", ARGV_STRING, (char *) 1, (char *) &_options->selection_file,
       "Specify file to output selected files."
     },
     {
-      "-count", ARGV_STRING, (char *) 1, (char *) &_options.count_file,
+      "-count", ARGV_STRING, (char *) 1, (char *) &_options->count_file,
       "Specify file to output the patch count."
     },
     {
-      "-configuration", ARGV_STRING, (char *) 1, (char *) &_options.conf_file,
+      "-configuration", ARGV_STRING, (char *) 1, (char *) &_options->conf_file,
       "Specify configuration file."
     },
     {
-      "-mask", ARGV_STRING, (char *) 1, (char *) &_options.mask_file,
+      "-mask", ARGV_STRING, (char *) 1, (char *) &_options->mask_file,
       "Specify a segmentation mask instead of the the default mask."
     },
     {
-      "-same_resolution", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.same_res,
+      "-same_resolution", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->same_res,
       "Output final mask with the same resolution as input file."
     },
     {
-      "-no_same_resolution", ARGV_CONSTANT, (char *) FALSE, (char *) &_options.same_res,
+      "-no_same_resolution", ARGV_CONSTANT, (char *) FALSE, (char *) &_options->same_res,
       "Output final mask downsampled at processing resolution."
     },
     {
-      "-no_mask", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.nomask,
+      "-no_mask", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->nomask,
       "Do not apply a segmentation mask. Perform the segmentation over the entire image."
     },
     {
-      "-no_positive", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.nopositive,
+      "-no_positive", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->nopositive,
       "Do not apply a positive mask."
     },
 #ifdef USE_SPAMS
     {
-      "-sparse", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.use_sparse,
+      "-sparse", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->use_sparse,
       "Use sparse patch merging."
     },
     {
-      "-lambda1", ARGV_FLOAT, (char *) 1, (char *) &_options.lambda1,
+      "-lambda1", ARGV_FLOAT, (char *) 1, (char *) &_options->lambda1,
       "Sparsity cost lambda1."
     },
     {
-      "-lambda2", ARGV_FLOAT, (char *) 1, (char *) &_options.lambda2,
+      "-lambda2", ARGV_FLOAT, (char *) 1, (char *) &_options->lambda2,
       "Sparsity cost lambda2."
     },
     {
-      "-sparse_mode", ARGV_INT, (char *) 1, (char *) &_options.sparse_mode,
+      "-sparse_mode", ARGV_INT, (char *) 1, (char *) &_options->sparse_mode,
       "Sparse mode."
     },
     
     {
-      "-stride", ARGV_INT, (char *) 1, (char *) &_options.sparse_stride,
+      "-stride", ARGV_INT, (char *) 1, (char *) &_options->sparse_stride,
       "Stride for spars segmentation speedup with possible quality degradation. (DON'T USE!)"
     },
 #endif
     //library_prefix
     {
-      "-library_prefix", ARGV_STRING, (char *) 1, (char *) &_options.library_prefix,
+      "-library_prefix", ARGV_STRING, (char *) 1, (char *) &_options->library_prefix,
       "library prefix, for cross-validation experiment."
     },
     {NULL, ARGV_END, NULL, NULL, NULL}
   };
   
-  fprintf(stderr,"\nmincbeast --\t\tan implementation of BEaST (Brain Extraction\n\t\t\tusing non-local Segmentation Technique) version %s\n\n",PACKAGE_VERSION);
-  
-#ifdef MT_USE_OPENMP
-  fprintf(stderr,"Using OpenMP, max number of threads=%d\n",omp_get_max_threads());
-#endif
-  
-  /* Get the time, overwriting newline */
-  timer = time(NULL);
-
-  _options.history_label=create_minc_timestamp(argc,argv);
+  _options->history_label=create_minc_timestamp(argc,argv);
 
   /* Get arguments */
   if ( ParseArgv(&argc, argv, argTable, 0) || (argc < 4) ) {
@@ -316,9 +284,64 @@ int main(int argc, char  *argv[] )
     return STATUS_ERR;
   }
 
-  _options.libdir      = argv[argc-3];
-  _options.input_file  = argv[argc-2];
-  _options.output_file = argv[argc-1];
+  _options->libdir      = argv[argc-3];
+  _options->input_file  = argv[argc-2];
+  _options->output_file = argv[argc-1];
+  
+  return STATUS_OK;
+}
+
+
+void cleanup_arguments(beast_options * _options)
+{
+  free(_options->history_label);
+  
+  if(_options->mask_file)
+    free(_options->mask_file);
+  if(_options->positive_file)
+    free(_options->positive_file);
+}
+
+int main(int argc, char  *argv[] )
+{
+  beast_options _options;
+  
+  char imagelist[FILENAMELENGTH], masklist[FILENAMELENGTH], meanlist[FILENAMELENGTH], varlist[FILENAMELENGTH];
+  char ***images, ***masks,***means,***vars;
+  int num_images,i,sizes[3][5],tmpsizes[5],volumesize,*selection,steps=3,filled=0;
+  float *imagedata,*maskdata,*meandata,*vardata,**subject,**mask,**positivemask=NULL,**segsubject,**patchcount,**filtered;
+  float max,min;
+  float **segmented;
+  float *tempdata;
+  
+  int scale, scaledvolumesize, scales[3] = {1,2,4};
+  int masksize=0, initialscale, targetscale, scalesteps;
+  
+  beast_conf input_conf[3],configuration[3];
+  image_metadata **meta;
+  image_metadata *mask_meta;
+  image_metadata *temp_meta;
+  time_t timer;
+
+
+  const char *default_beast_library=BEAST_LIBRARY_PREFIX;
+  const char *default_beast_mask=BEAST_LIBRARY_PREFIX"/margin_mask.mnc";
+  const char *default_beast_positive_file=BEAST_LIBRARY_PREFIX"/intersection_mask.mnc";
+  const char *default_beast_config=BEAST_LIBRARY_PREFIX"/default.2mm.conf";
+
+  
+  fprintf(stderr,"\nmincbeast --\t\tan implementation of BEaST (Brain Extraction\n\t\t\tusing non-local Segmentation Technique) version %s\n\n",PACKAGE_VERSION);
+  
+#ifdef MT_USE_OPENMP
+  fprintf(stderr,"Using OpenMP, max number of threads=%d\n",omp_get_max_threads());
+#endif
+  
+  /* Get the time, overwriting newline */
+  timer = time(NULL);
+  
+  if( get_arguments(argc, argv, &_options)!=STATUS_OK )
+    return STATUS_ERR;
+  
 
   if (_options.mask_file==NULL) {
     _options.mask_file=(char*)malloc((strlen(_options.libdir)+20)*sizeof(*_options.mask_file));
@@ -733,12 +756,8 @@ int main(int argc, char  *argv[] )
   free_meta(meta[0]);
   
   free(meta);
-  free(_options.history_label);
   
-  if(_options.mask_file)
-    free(_options.mask_file);
-  if(_options.positive_file)
-    free(_options.positive_file);
+  cleanup_arguments(&_options);
 
   return STATUS_OK;
 }
