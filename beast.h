@@ -106,3 +106,5 @@ int write_volume_generic(const char *filename,const float *data,const image_meta
 char* create_minc_timestamp(int argc,char *argv[]);
 
 #endif
+
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */

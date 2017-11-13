@@ -32,3 +32,5 @@ image_metadata * read_nifti(const char *filename, float **image, int *sizes);
 int write_nifti_generic(const char *filename,const float *image,const image_metadata *meta);
 
 #endif
+
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */

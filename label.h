@@ -43,3 +43,5 @@ void free_wrap(Volume_wrap *wrap);
 int getLargestObject_float(float *input, int *sizes, VIO_Real lblValue, int object_no);
 
 #endif
+
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */

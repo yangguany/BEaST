@@ -57,10 +57,55 @@ const char REFERENCE[]="Reference: \n\tEskildsen SF, Coupe P, Fonov V, Manjon JV
     #define omp_get_max_threads() 1
 #endif
 
+struct beast_options
+{
+  char *input_file;
+  char *output_file;
+  char *libdir;
+  char *history_label;
+  
+  double lambda1;
+  double lambda2;
+  int    sparse_mode;
+  
+  int sparse_stride;
+
+  VIO_BOOL outputprob;
+  VIO_BOOL flipimages;
+  VIO_BOOL load_moments;
+  VIO_BOOL fill_output;
+  VIO_BOOL verbose;
+  VIO_BOOL medianfilter;
+  VIO_BOOL patchfilter;
+  VIO_BOOL abspath;
+  VIO_BOOL same_res;
+  VIO_BOOL clobber    ;
+  VIO_BOOL nomask     ;
+  VIO_BOOL nopositive ;
+  VIO_BOOL use_sparse;
+
+  int voxelsize;
+  int sizepatch;
+  int searcharea;
+  double alpha;
+  double beta;
+  double threshold;
+  int selectionsize;
+  
+  char *positive_file;
+  char *selection_file;
+  char *count_file;
+  char *conf_file;
+  char *mask_file;
+  char *library_prefix;
+};
+
+
 int main(int argc, char  *argv[] )
 {
-  char *input_file,*output_file,*libdir, *history_label;
-  char imagelist[FILENAMELENGTH], masklist[FILENAMELENGTH],meanlist[FILENAMELENGTH],varlist[FILENAMELENGTH];
+  beast_options _options;
+  
+  char imagelist[FILENAMELENGTH], masklist[FILENAMELENGTH], meanlist[FILENAMELENGTH], varlist[FILENAMELENGTH];
   char ***images, ***masks,***means,***vars;
   int num_images,i,sizes[3][5],tmpsizes[5],volumesize,*selection,steps=3,filled=0;
   float *imagedata,*maskdata,*meandata,*vardata,**subject,**mask,**positivemask=NULL,**segsubject,**patchcount,**filtered;
@@ -68,49 +113,45 @@ int main(int argc, char  *argv[] )
   float **segmented;
   float *tempdata;
   
-  double lambda1=0.15;
-  double lambda2=0.0;
-  int    sparse_mode=2;
+  _options.sparse_stride=1;
+  int scale, scaledvolumesize, scales[3] = {1,2,4};
+  int masksize=0, initialscale, targetscale, scalesteps;
   
-  int sparse_stride=1;
-  int scale,scaledvolumesize,scales[3] = {1,2,4};
-  int masksize=0,initialscale,targetscale,scalesteps;
   beast_conf input_conf[3],configuration[3];
   image_metadata **meta;
   image_metadata *mask_meta;
   image_metadata *temp_meta;
-  int targetvoxelsize=1;
-
-  VIO_BOOL outputprob = FALSE;
-  VIO_BOOL flipimages = FALSE;
-  VIO_BOOL load_moments = FALSE;
-  VIO_BOOL fill_output = FALSE;
-  VIO_BOOL verbose = FALSE;
-  VIO_BOOL medianfilter = FALSE;
-  VIO_BOOL patchfilter = FALSE;
-  VIO_BOOL abspath = FALSE;
-  VIO_BOOL same_res = TRUE;
-  VIO_BOOL clobber  = FALSE;
-  VIO_BOOL nomask = FALSE;
-  VIO_BOOL nopositive  = FALSE;
-  VIO_BOOL use_sparse = FALSE;
-
-  int voxelsize=4;
-  int sizepatch = 1;
-  int searcharea = 2;
-  double alpha = 0.5;
-  double beta = 0.25;
-  double threshold = 0.95;
-  int selectionsize = 20;
   time_t timer;
 
-  char *positive_file=NULL;
-  char *selection_file=NULL;
-  char *count_file=NULL;
-  char *conf_file=NULL;
-  char *mask_file=NULL;
-  
-  char *library_prefix="library";
+  _options.lambda1      = 0.15;
+  _options.lambda2      = 0.0;
+  _options.sparse_mode  = 2;
+  _options.outputprob   = FALSE;
+  _options.flipimages   = FALSE;
+  _options.load_moments = FALSE;
+  _options.fill_output  = FALSE;
+  _options.verbose      = FALSE;
+  _options.medianfilter = FALSE;
+  _options.patchfilter  = FALSE;
+  _options.abspath      = FALSE;
+  _options.same_res     = TRUE;
+  _options.clobber      = FALSE;
+  _options.nomask       = FALSE;
+  _options.nopositive   = FALSE;
+  _options.use_sparse   = FALSE;
+  _options.voxelsize    = 4;
+  _options.sizepatch    = 1;
+  _options.searcharea   = 2;
+  _options.alpha        = 0.5;
+  _options.beta         = 0.25;
+  _options.threshold    = 0.95;
+  _options.selectionsize = 20;
+  _options.positive_file = NULL;
+  _options.selection_file= NULL;
+  _options.count_file  = NULL;
+  _options.conf_file   = NULL;
+  _options.mask_file   = NULL;
+  _options.library_prefix = "library";
 
   const char *default_beast_library=BEAST_LIBRARY_PREFIX;
   const char *default_beast_mask=BEAST_LIBRARY_PREFIX"/margin_mask.mnc";
@@ -120,133 +161,133 @@ int main(int argc, char  *argv[] )
   /* Argument table */
   ArgvInfo argTable[] = {
     {
-      "-probability", ARGV_CONSTANT, (char *) TRUE, (char *) &outputprob,
+      "-probability", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.outputprob,
       "Output the probability map instead of crisp mask."
     },
     {
-      "-flip", ARGV_CONSTANT, (char *) TRUE, (char *) &flipimages,
+      "-flip", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.flipimages,
       "Flip images around the mid-sagittal plane to increase patch count."
     },
     {
-      "-load_moments", ARGV_CONSTANT, (char *) TRUE, (char *) &load_moments,
+      "-load_moments", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.load_moments,
       "Do not calculate moments instead use precalculated library moments. (for optimization purposes)"
     },
     {
-      "-fill", ARGV_CONSTANT, (char *) TRUE, (char *) &fill_output,
+      "-fill", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.fill_output,
       "Fill holes in the binary output."
     },
     {
-      "-median", ARGV_CONSTANT, (char *) TRUE, (char *) &medianfilter,
+      "-median", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.medianfilter,
       "Apply a median filter on the probability map."
     },
     {
-      "-nlm_filter", ARGV_CONSTANT, (char *) TRUE, (char *) &patchfilter,
+      "-nlm_filter", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.patchfilter,
       "Apply an NLM filter on the probability map (experimental)."
     },
     {
-      "-verbose", ARGV_CONSTANT, (char *) TRUE, (char *) &verbose,
+      "-verbose", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.verbose,
       "Enable verbose output."
     },
     {
-      "-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &clobber,
+      "-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.clobber,
       "Clobber output files"
     },
     {
-      "-abspath", ARGV_CONSTANT, (char *) TRUE, (char *) &abspath,
+      "-abspath", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.abspath,
       "File paths in the library are absolute (default is relative to library root)."
     },
 
     {
-      "-voxel_size", ARGV_INT, (char *) 1, (char *) &voxelsize,
+      "-voxel_size", ARGV_INT, (char *) 1, (char *) &_options.voxelsize,
       "Specify voxel size for calculations (4, 2, or 1). Assumes no multiscale. Use configuration file for multiscale."
     },
     {
-      "-patch_size", ARGV_INT, (char *) 1, (char *) &sizepatch,
+      "-patch_size", ARGV_INT, (char *) 1, (char *) &_options.sizepatch,
       "Specify patch size for single scale approach."
     },
     {
-      "-search_area", ARGV_INT, (char *) 1, (char *) &searcharea,
+      "-search_area", ARGV_INT, (char *) 1, (char *) &_options.searcharea,
       "Specify size of search area for single scale approach."
     },
     {
-      "-alpha", ARGV_FLOAT, (char *) 1, (char *) &alpha,
+      "-alpha", ARGV_FLOAT, (char *) 1, (char *) &_options.alpha,
       "Specify confidence level Alpha."
     },
     {
-      "-beta", ARGV_FLOAT, (char *) 1, (char *) &beta,
+      "-beta", ARGV_FLOAT, (char *) 1, (char *) &_options.beta,
       "Specify smoothness factor Beta."
     },
     {
-      "-threshold", ARGV_FLOAT, (char *) 1, (char *) &threshold,
+      "-threshold", ARGV_FLOAT, (char *) 1, (char *) &_options.threshold,
       "Specify threshold for patch selection."
     },
     {
-      "-selection_num", ARGV_INT, (char *) 1, (char *) &selectionsize,
+      "-selection_num", ARGV_INT, (char *) 1, (char *) &_options.selectionsize,
       "Specify number of selected images."
     },
 
     {
-      "-positive", ARGV_STRING, (char *) 1, (char *) &positive_file,
+      "-positive", ARGV_STRING, (char *) 1, (char *) &_options.positive_file,
       "Specify mask of positive segmentation (inside mask) instead of the default mask."
     },
     {
-      "-output_selection", ARGV_STRING, (char *) 1, (char *) &selection_file,
+      "-output_selection", ARGV_STRING, (char *) 1, (char *) &_options.selection_file,
       "Specify file to output selected files."
     },
     {
-      "-count", ARGV_STRING, (char *) 1, (char *) &count_file,
+      "-count", ARGV_STRING, (char *) 1, (char *) &_options.count_file,
       "Specify file to output the patch count."
     },
     {
-      "-configuration", ARGV_STRING, (char *) 1, (char *) &conf_file,
+      "-configuration", ARGV_STRING, (char *) 1, (char *) &_options.conf_file,
       "Specify configuration file."
     },
     {
-      "-mask", ARGV_STRING, (char *) 1, (char *) &mask_file,
+      "-mask", ARGV_STRING, (char *) 1, (char *) &_options.mask_file,
       "Specify a segmentation mask instead of the the default mask."
     },
     {
-      "-same_resolution", ARGV_CONSTANT, (char *) TRUE, (char *) &same_res,
+      "-same_resolution", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.same_res,
       "Output final mask with the same resolution as input file."
     },
     {
-      "-no_same_resolution", ARGV_CONSTANT, (char *) FALSE, (char *) &same_res,
+      "-no_same_resolution", ARGV_CONSTANT, (char *) FALSE, (char *) &_options.same_res,
       "Output final mask downsampled at processing resolution."
     },
     {
-      "-no_mask", ARGV_CONSTANT, (char *) TRUE, (char *) &nomask,
+      "-no_mask", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.nomask,
       "Do not apply a segmentation mask. Perform the segmentation over the entire image."
     },
     {
-      "-no_positive", ARGV_CONSTANT, (char *) TRUE, (char *) &nopositive,
+      "-no_positive", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.nopositive,
       "Do not apply a positive mask."
     },
 #ifdef USE_SPAMS
     {
-      "-sparse", ARGV_CONSTANT, (char *) TRUE, (char *) &use_sparse,
+      "-sparse", ARGV_CONSTANT, (char *) TRUE, (char *) &_options.use_sparse,
       "Use sparse patch merging."
     },
     {
-      "-lambda1", ARGV_FLOAT, (char *) 1, (char *) &lambda1,
+      "-lambda1", ARGV_FLOAT, (char *) 1, (char *) &_options.lambda1,
       "Sparsity cost lambda1."
     },
     {
-      "-lambda2", ARGV_FLOAT, (char *) 1, (char *) &lambda2,
+      "-lambda2", ARGV_FLOAT, (char *) 1, (char *) &_options.lambda2,
       "Sparsity cost lambda2."
     },
     {
-      "-sparse_mode", ARGV_INT, (char *) 1, (char *) &sparse_mode,
+      "-sparse_mode", ARGV_INT, (char *) 1, (char *) &_options.sparse_mode,
       "Sparse mode."
     },
     
     {
-      "-stride", ARGV_INT, (char *) 1, (char *) &sparse_stride,
+      "-stride", ARGV_INT, (char *) 1, (char *) &_options.sparse_stride,
       "Stride for spars segmentation speedup with possible quality degradation. (DON'T USE!)"
     },
 #endif
     //library_prefix
     {
-      "-library_prefix", ARGV_STRING, (char *) 1, (char *) &library_prefix,
+      "-library_prefix", ARGV_STRING, (char *) 1, (char *) &_options.library_prefix,
       "library prefix, for cross-validation experiment."
     },
     {NULL, ARGV_END, NULL, NULL, NULL}
@@ -261,10 +302,10 @@ int main(int argc, char  *argv[] )
   /* Get the time, overwriting newline */
   timer = time(NULL);
 
-  history_label=create_minc_timestamp(argc,argv);
+  _options.history_label=create_minc_timestamp(argc,argv);
 
   /* Get arguments */
-  if (ParseArgv(&argc, argv, argTable, 0) || (argc < 4)) {
+  if ( ParseArgv(&argc, argv, argTable, 0) || (argc < 4) ) {
     fprintf(stderr,LICENSE);
     fprintf(stderr,REFERENCE);
     fprintf(stderr,
@@ -275,40 +316,40 @@ int main(int argc, char  *argv[] )
     return STATUS_ERR;
   }
 
-  libdir      = argv[argc-3];
-  input_file  = argv[argc-2];
-  output_file = argv[argc-1];
+  _options.libdir      = argv[argc-3];
+  _options.input_file  = argv[argc-2];
+  _options.output_file = argv[argc-1];
 
-  if (mask_file==NULL) {
-    mask_file=(char*)malloc((strlen(libdir)+20)*sizeof(*mask_file));
-    sprintf(mask_file,"%s/margin_mask.mnc",libdir);
+  if (_options.mask_file==NULL) {
+    _options.mask_file=(char*)malloc((strlen(_options.libdir)+20)*sizeof(*_options.mask_file));
+    sprintf(_options.mask_file,"%s/margin_mask.mnc",_options.libdir);
   }
-  if ((!nopositive) && (positive_file==NULL)) {
-    positive_file=(char*)malloc((strlen(libdir)+30)*sizeof(*positive_file));
-    sprintf(positive_file,"%s/intersection_mask.mnc",libdir);
+  if ((!_options.nopositive) && (_options.positive_file==NULL)) {
+    _options.positive_file=(char*)malloc((strlen(_options.libdir)+30)*sizeof(*_options.positive_file));
+    sprintf(_options.positive_file,"%s/intersection_mask.mnc",_options.libdir);
   }
 
-  if(!clobber) {
-    if(!access(output_file,F_OK)) {
-      fprintf(stderr,"ERROR! File exists: %s , run with -clobber\n",output_file);
+  if(!_options.clobber) {
+    if(!access(_options.output_file,F_OK)) {
+      fprintf(stderr,"ERROR! File exists: %s , run with -clobber\n",_options.output_file);
       return STATUS_ERR;
     }
-    if(count_file && !access(count_file,F_OK)) {
-      fprintf(stderr,"ERROR! File exists: %s , run with -clobber\n",count_file);
+    if(_options.count_file && !access(_options.count_file,F_OK)) {
+      fprintf(stderr,"ERROR! File exists: %s , run with -clobber\n",_options.count_file);
       return STATUS_ERR;
     }
   }
 
-  if ((voxelsize>4) || (voxelsize<1) || (voxelsize==3)) {
+  if ((_options.voxelsize>4) || (_options.voxelsize<1) || (_options.voxelsize==3)) {
     fprintf(stderr,"ERROR! Initial voxel size must be either 4, 2, or 1\n");
     return STATUS_ERR;
   }
 
   meta = (image_metadata **)malloc(3*sizeof(image_metadata*));
 
-  meta[0] = read_volume(input_file, &tempdata, sizes[0]);
+  meta[0] = read_volume(_options.input_file, &tempdata, sizes[0]);
   if (meta[0] == NULL) {
-    fprintf(stderr,"ERROR! Image not read: %s\n",input_file);
+    fprintf(stderr,"ERROR! Image not read: %s\n",_options.input_file);
     return STATUS_ERR;
   }
   volumesize=sizes[0][0]*sizes[0][1]*sizes[0][2];
@@ -317,8 +358,8 @@ int main(int argc, char  *argv[] )
   cp_volume(tempdata, subject[0], sizes[0]);
   free(tempdata);
 
-  if ((temp_meta=read_volume(mask_file, &tempdata, tmpsizes)) == NULL) {
-    fprintf(stderr,"ERROR! Image not read: %s\n",mask_file);
+  if ((temp_meta=read_volume(_options.mask_file, &tempdata, tmpsizes)) == NULL) {
+    fprintf(stderr,"ERROR! Image not read: %s\n",_options.mask_file);
     return STATUS_ERR;
   }
   free_meta(temp_meta);
@@ -331,15 +372,15 @@ int main(int argc, char  *argv[] )
   cp_volume(tempdata, mask[0], sizes[0]);
   free(tempdata);
 
-  if (nomask) {
+  if (_options.nomask) {
     /* option for no segmentation mask - set the mask to all ones */
     wipe_data(mask[0],sizes[0],1.0);
   }
 
-  if (positive_file!=NULL) {
+  if (_options.positive_file!=NULL) {
     image_metadata *positive_meta;
-    if ((positive_meta=read_volume(positive_file, &tempdata, tmpsizes)) == NULL) {
-      fprintf(stderr,"ERROR! Image not read: %s\n",positive_file);
+    if ((positive_meta=read_volume(_options.positive_file, &tempdata, tmpsizes)) == NULL) {
+      fprintf(stderr,"ERROR! Image not read: %s\n",_options.positive_file);
       return STATUS_ERR;
     }
     if ((tmpsizes[0]!=sizes[0][0]) || (tmpsizes[1]!=sizes[0][1]) || (tmpsizes[2]!=sizes[0][2])) {
@@ -365,18 +406,18 @@ int main(int argc, char  *argv[] )
 
   /* populate the entire configuration table for compatibility reasons */
   for (i=0; i<3; i++) {
-    configuration[i].voxelsize = voxelsize;
-    configuration[i].patchsize = sizepatch;
-    configuration[i].searcharea = searcharea;
-    configuration[i].alpha = alpha;
-    configuration[i].beta = beta;
-    configuration[i].threshold = threshold;
-    configuration[i].selectionsize = selectionsize;
+    configuration[i].voxelsize = _options.voxelsize;
+    configuration[i].patchsize = _options.sizepatch;
+    configuration[i].searcharea = _options.searcharea;
+    configuration[i].alpha = _options.alpha;
+    configuration[i].beta = _options.beta;
+    configuration[i].threshold = _options.threshold;
+    configuration[i].selectionsize = _options.selectionsize;
   }
 
 
-  if (conf_file != NULL) {
-    steps=read_configuration(conf_file, input_conf);
+  if (_options.conf_file != NULL) {
+    steps=read_configuration(_options.conf_file, input_conf);
     if (steps==STATUS_ERR) {
       fprintf(stderr,"Error in configuration file. Values outside limits.\n");
       return STATUS_ERR;
@@ -399,7 +440,7 @@ int main(int argc, char  *argv[] )
     }
   } else {
     /* if no configuration file, apply user settings for single scale */
-    targetscale=initialscale=(int)(voxelsize/2);
+    targetscale=initialscale=(int)(_options.voxelsize/2);
   }
 
   scalesteps=initialscale-targetscale+1;
@@ -420,14 +461,14 @@ int main(int argc, char  *argv[] )
   /*for (scale=initialscale;scale>=0;scale--){*/
   for (scale=2; scale>=0; scale--) {
 
-    sprintf(imagelist,"%s/%s.stx.%dmm", libdir, library_prefix, scales[scale]);
-    sprintf(masklist,"%s/%s.masks.%dmm",libdir, library_prefix, scales[scale]);
-    if (load_moments) {
-      sprintf(meanlist,"%s/%s.means.%dmm",libdir, library_prefix, scales[scale]);
-      sprintf(varlist,"%s/%s.vars.%dmm",  libdir, library_prefix, scales[scale]);
+    sprintf(imagelist,"%s/%s.stx.%dmm", _options.libdir, _options.library_prefix, scales[scale]);
+    sprintf(masklist,"%s/%s.masks.%dmm",_options.libdir, _options.library_prefix, scales[scale]);
+    if (_options.load_moments) {
+      sprintf(meanlist,"%s/%s.means.%dmm",_options.libdir, _options.library_prefix, scales[scale]);
+      sprintf(varlist,"%s/%s.vars.%dmm",  _options.libdir, _options.library_prefix, scales[scale]);
     }
-    num_images=read_list( imagelist, images[scale], abspath?"":libdir );
-    if (read_list( masklist, masks[scale], abspath?"":libdir )!=num_images) {
+    num_images=read_list( imagelist, images[scale], _options.abspath?"":_options.libdir );
+    if (read_list( masklist, masks[scale], _options.abspath?"":_options.libdir )!=num_images) {
       fprintf(stderr,"ERROR! Number of images and masks does not match!\n");
       return STATUS_ERR;
     }
@@ -437,20 +478,20 @@ int main(int argc, char  *argv[] )
       return STATUS_ERR;
     }
 
-    if ( load_moments ) {
-      if ( read_list(meanlist, means[scale],abspath?"":libdir)!=num_images ) {
+    if ( _options.load_moments ) {
+      if ( read_list(meanlist, means[scale],_options.abspath?"":_options.libdir)!=num_images ) {
         fprintf(stderr,"ERROR! Number of images and means does not match!\n");
         return STATUS_ERR;
       }
-      if ( read_list(varlist, vars[scale],abspath?"":libdir)!=num_images ) {
+      if ( read_list(varlist, vars[scale],_options.abspath?"":_options.libdir)!=num_images ) {
         fprintf(stderr,"ERROR! Number of images and vars does not match!\n");
         return STATUS_ERR;
       }
     }
   }
 
-  if ((mask_meta=read_volume(mask_file, &tempdata, tmpsizes)) == NULL) {
-    fprintf(stderr,"ERROR! Image not read: %s\n",mask_file);
+  if ((mask_meta=read_volume(_options.mask_file, &tempdata, tmpsizes)) == NULL) {
+    fprintf(stderr,"ERROR! Image not read: %s\n",_options.mask_file);
     return STATUS_ERR;
   }
   if ((tmpsizes[0]!=sizes[0][0]) || (tmpsizes[1]!=sizes[0][1]) || (tmpsizes[2]!=sizes[0][2])) {
@@ -482,15 +523,16 @@ int main(int argc, char  *argv[] )
   patchcount = alloc_2d_float(3, volumesize);
   filtered   = alloc_2d_float(3, volumesize);
 
-  if (verbose) fprintf(stderr,"Initial voxel size: %d\nTarget voxel size: %d\n", scales[initialscale], scales[targetscale]);
+  if (_options.verbose) fprintf(stderr,"Initial voxel size: %d\nTarget voxel size: %d\n", scales[initialscale], scales[targetscale]);
 
   for (scale=initialscale; scale>=targetscale; scale--) {
     int selection_size=configuration[scale].selectionsize;
     
     selection = (int *)malloc(configuration[scale].selectionsize*sizeof(*selection));
-    pre_selection(subject[scale], mask[scale], images[scale], sizes[scale], num_images, configuration[scale].selectionsize, selection, selection_file,verbose);
+    pre_selection(subject[scale], mask[scale], images[scale], sizes[scale], num_images, 
+                  configuration[scale].selectionsize, selection, _options.selection_file,_options.verbose);
 
-    if (verbose) fprintf(stderr,"Performing segmentation at %dmm resolution\nReading files ",scales[scale]);
+    if (_options.verbose) fprintf(stderr,"Performing segmentation at %dmm resolution\nReading files ",scales[scale]);
 
     scaledvolumesize = sizes[scale][0]*sizes[scale][1]*sizes[scale][2];
 
@@ -502,7 +544,7 @@ int main(int argc, char  *argv[] )
     /* read the library images, masks, and moments */
     for (i=0; i<configuration[scale].selectionsize; i++) {
       image_metadata *_meta;
-      if (verbose) fprintf(stderr,".");
+      if (_options.verbose) fprintf(stderr,".");
       if ((_meta=read_volume(images[scale][selection[i]], &tempdata, tmpsizes)) == NULL) {
         fprintf(stderr,"ERROR! Image not read: %s\n",images[scale][selection[i]]);
         return STATUS_ERR;
@@ -511,10 +553,10 @@ int main(int argc, char  *argv[] )
       free(tempdata);
       free_meta(_meta);
     }
-    if (verbose) fprintf(stderr,"*");
+    if (_options.verbose) fprintf(stderr,"*");
     for (i=0; i<configuration[scale].selectionsize; i++) {
       image_metadata *_meta;
-      if (verbose) fprintf(stderr,".");
+      if (_options.verbose) fprintf(stderr,".");
       if ((_meta=read_volume(masks[scale][selection[i]], &tempdata, tmpsizes)) == NULL) {
         fprintf(stderr,"ERROR! Image not read: %s\n",masks[scale][selection[i]]);
         return STATUS_ERR;
@@ -523,20 +565,20 @@ int main(int argc, char  *argv[] )
       free(tempdata);
       free_meta(_meta);
     }
-    if (verbose) fprintf(stderr,"*");
+    if (_options.verbose) fprintf(stderr,"*");
 
-    if (!load_moments) {
+    if (!_options.load_moments) {
       /* calculate the mean and variance for the library images */
       /* this must be done if the selected patch size is different from the one used in the precalculation */
       for (i=0; i<configuration[scale].selectionsize; i++) {
-        if (verbose) fprintf(stderr,"c");
+        if (_options.verbose) fprintf(stderr,"c");
         ComputeFirstMoment(imagedata+i*scaledvolumesize, meandata+i*scaledvolumesize, sizes[scale], configuration[scale].patchsize, &min, &max);
         ComputeSecondMoment(imagedata+i*scaledvolumesize, meandata+i*scaledvolumesize, vardata+i*scaledvolumesize, sizes[scale], configuration[scale].patchsize, &min, &max);
       }
     } else {
       for (i=0; i<configuration[scale].selectionsize; i++) {
         image_metadata *_meta;
-        if (verbose) fprintf(stderr,".");
+        if (_options.verbose) fprintf(stderr,".");
         if ((_meta=read_volume(means[scale][selection[i]], &tempdata, tmpsizes)) == NULL) {
           fprintf(stderr,"ERROR! Image not read: %s\n",means[scale][selection[i]]);
           return STATUS_ERR;
@@ -545,7 +587,7 @@ int main(int argc, char  *argv[] )
         free(tempdata);
         free_meta(_meta);
       }
-      if (verbose) fprintf(stderr,"*");
+      if (_options.verbose) fprintf(stderr,"*");
       for (i=0; i<configuration[scale].selectionsize; i++) {
         image_metadata *_meta;
         fprintf(stderr,".");
@@ -558,18 +600,18 @@ int main(int argc, char  *argv[] )
         free_meta(_meta);
       }
     }
-    if (verbose) fprintf(stderr,"\n");
+    if (_options.verbose) fprintf(stderr,"\n");
     /* end of reading files */
 
     /* remove any disconnected parts */
     masksize = getLargestObject_float(mask[scale], sizes[scale], 1, 0);
 
-    if (verbose) fprintf(stderr,"Mask size: %d\nAlpha: %f\n",masksize,configuration[scale].alpha);
+    if (_options.verbose) fprintf(stderr,"Mask size: %d\nAlpha: %f\n",masksize,configuration[scale].alpha);
 
     /* make sure we starting from a clean slate */
     wipe_data(segsubject[scale],sizes[scale],0.0);
 
-    if (flipimages) {
+    if (_options.flipimages) {
       /* doubling the library selection by flipping images along the mid-sagittal plane */
       imagedata = (float *)realloc(imagedata,configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*imagedata));
       maskdata =  (float *)realloc(maskdata, configuration[scale].selectionsize*2*scaledvolumesize*sizeof(*maskdata) );
@@ -584,12 +626,12 @@ int main(int argc, char  *argv[] )
       }
       selection_size=configuration[scale].selectionsize*2;
     }
-    if(use_sparse) {
+    if(_options.use_sparse) {
 #ifdef USE_SPAMS    
         max = nlmsegSparse4D(subject[scale], imagedata, maskdata, meandata, vardata, mask[scale], 
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
                         configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale],
-                        lambda1,lambda2,sparse_mode,sparse_stride
+                        _options.lambda1,_options.lambda2,_options.sparse_mode,_options.sparse_stride
                             );
 #endif
     }  else {
@@ -604,7 +646,7 @@ int main(int argc, char  *argv[] )
     free(vardata);
 
 
-    if (positive_file!=NULL) {
+    if ( _options.positive_file!=NULL ) {
       /* add the certain positive segmentation (inside mask) */
       add_mask_data(segsubject[scale], positivemask[scale], sizes[scale]);
     }
@@ -612,12 +654,12 @@ int main(int argc, char  *argv[] )
     /* add the certain segmentation from the previous scale */
     add_mask_data(segsubject[scale], segmented[scale], sizes[scale]);
 
-    if (medianfilter) {
+    if ( _options.medianfilter ) {
       median_filter(segsubject[scale], sizes[scale], 3);
     }
 
     /* the patch filter is experimental */
-    if (patchfilter) {
+    if ( _options.patchfilter ) {
       wipe_data(filtered[scale],sizes[scale],0.0);
       wipe_data(patchcount[scale],sizes[scale],0.0);
       max = nlmfilter(subject[scale], mask[scale], segsubject[scale], 2*configuration[scale].patchsize, 2*configuration[scale].searcharea, configuration[scale].beta, configuration[scale].threshold, sizes[scale], filtered[scale], patchcount[scale]);
@@ -636,28 +678,28 @@ int main(int argc, char  *argv[] )
   } /* for each scale */
 
 
-  if (count_file!=NULL) {
-    if(write_volume_generic(count_file, patchcount[targetscale], meta[targetscale],FALSE))
+  if (_options.count_file!=NULL) {
+    if(write_volume_generic(_options.count_file, patchcount[targetscale], meta[targetscale],FALSE))
     {
-      fprintf(stderr,"Can't save output to %s\n",count_file);
+      fprintf(stderr,"Can't save output to %s\n",_options.count_file);
       return STATUS_ERR;
     }
   }
 
-  if(targetscale!=0 && same_res) { /* need to upsample final output */
-    if (verbose) fprintf(stderr,"Upsampling to input resolution, %dx%dx%d\n",sizes[0][0],sizes[0][1],sizes[0][2]);
+  if(targetscale!=0 && _options.same_res) { /* need to upsample final output */
+    if (_options.verbose) fprintf(stderr,"Upsampling to input resolution, %dx%dx%d\n",sizes[0][0],sizes[0][1],sizes[0][2]);
     resize_trilinear(segsubject[targetscale], sizes[targetscale], sizes[0], segsubject[0]);
     masksize=update_mask(segsubject[0], mask[0], segmented[0], sizes[0], configuration[targetscale].alpha, 1.0-configuration[targetscale].alpha);
     targetscale=0;
-    configuration[targetscale].alpha = alpha;
+    configuration[targetscale].alpha = _options.alpha;
   }
 
-  if (!outputprob) {
-    if (verbose) fprintf(stderr,"Thresholding estimator at %f\n",configuration[targetscale].alpha);
+  if (!_options.outputprob) {
+    if (_options.verbose) fprintf(stderr,"Thresholding estimator at %f\n",configuration[targetscale].alpha);
     threshold_data(segsubject[targetscale], sizes[targetscale], configuration[targetscale].alpha);
     getLargestObject_float(segsubject[targetscale], sizes[targetscale], 1, 0);
 
-    if (fill_output) {
+    if (_options.fill_output) {
       wipe_data(mask[targetscale], sizes[targetscale], 1.0);
       filled = flood_fill_float(segsubject[targetscale], mask[targetscale], sizes[targetscale], 0, 0, 0, 0, 6);
       //segsubject[targetscale]=mask[targetscale];
@@ -665,15 +707,15 @@ int main(int argc, char  *argv[] )
     }
   }
 
-  meta[targetscale]->history=strdup(history_label);
-  if(write_volume_generic(output_file, segsubject[targetscale], meta[targetscale],!outputprob)) {
-    fprintf(stderr,"Can't save output to %s\n",output_file);
+  meta[targetscale]->history=strdup(_options.history_label);
+  if(write_volume_generic(_options.output_file, segsubject[targetscale], meta[targetscale],!_options.outputprob)) {
+    fprintf(stderr,"Can't save output to %s\n", _options.output_file);
     return STATUS_ERR;
   }
 
   free_2d_float(mask);
   free_2d_float(subject);
-  if (positive_file!=NULL)
+  if (_options.positive_file!=NULL)
     free_2d_float(positivemask);
   
   free_2d_float(filtered);
@@ -691,12 +733,14 @@ int main(int argc, char  *argv[] )
   free_meta(meta[0]);
   
   free(meta);
-  free(history_label);
+  free(_options.history_label);
   
-  if(mask_file)
-    free(mask_file);
-  if(positive_file)
-    free(positive_file);
+  if(_options.mask_file)
+    free(_options.mask_file);
+  if(_options.positive_file)
+    free(_options.positive_file);
 
   return STATUS_OK;
 }
+
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */

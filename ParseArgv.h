@@ -88,3 +88,5 @@ int ParseArgv(int *argcPtr, char **argv,
 #if defined(__cplusplus)
 }
 #endif
+
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */

@@ -62,3 +62,5 @@ float nlmfilter(const float *subject,const float *mask,const float *maskdata,
                 float *SegSubject, float *PatchCount);
 
 #endif
+
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */

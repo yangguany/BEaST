@@ -65,3 +65,5 @@ void free_4d(int ****ptr);
 void free_meta(image_metadata* meta);
 
 #endif
+
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */
