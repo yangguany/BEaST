@@ -731,7 +731,7 @@ int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int
   index=sz*sizes[2]*sizes[1] + sy*sizes[2] + sx;
   iso_value = data[index];
 #ifdef DEBUG
-  fprintf(stderr,"Iso value: %f\n",iso_value);
+  fprintf(stderr,"Iso value: %f\n", iso_value);
   fprintf(stderr,"Fill value: %f\n",fill_value);
 #endif
   output[index] = fill_value;

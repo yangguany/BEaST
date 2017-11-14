@@ -190,7 +190,7 @@ int mincbeast_v1(beast_options * _options)
 
   scalesteps=initialscale-targetscale+1;
 
-  fprintf(stderr,"%d scale steps:\n",scalesteps);
+  fprintf(stderr,"initialscale:%d targetscale:%d\n",initialscale,targetscale);
 
   for (i=initialscale; i>=targetscale; i--) {
     fprintf(stderr,"%d %d %d %4.2lf %4.2lf %4.2lf %d\n",
@@ -203,7 +203,7 @@ int mincbeast_v1(beast_options * _options)
   means =  alloc_3d_char(3, MAXLIBSIZE, FILENAMELENGTH);
   vars =   alloc_3d_char(3, MAXLIBSIZE, FILENAMELENGTH);
 
-  for (scale=initialscale;scale>=0;scale--){
+  for (scale=initialscale;scale>=targetscale;scale--){
     fprintf(stderr,"%d: %d %d %d %4.2lf %4.2lf %4.2lf %d\n",scale,
             configuration[scale].voxelsize, configuration[scale].patchsize, configuration[scale].searcharea,
             configuration[scale].alpha,     configuration[scale].beta, configuration[scale].threshold, configuration[scale].selectionsize);
@@ -280,6 +280,7 @@ int mincbeast_v1(beast_options * _options)
     
     selection = (int *)malloc(configuration[scale].selectionsize*sizeof(*selection));
     
+    
     if(_options->use_double)
       pre_selection_double(subject[scale], mask[scale], images[scale], sizes[scale], num_images, 
                   configuration[scale].selectionsize, selection, _options->selection_file,_options->verbose);
@@ -327,7 +328,7 @@ int mincbeast_v1(beast_options * _options)
       /* this must be done if the selected patch size is different from the one used in the precalculation */
       for (i=0; i<configuration[scale].selectionsize; i++) {
         if (_options->verbose) fprintf(stderr,"c");
-        ComputeFirstMoment(imagedata+i*scaledvolumesize, meandata+i*scaledvolumesize, sizes[scale], configuration[scale].patchsize, &min, &max);
+        ComputeFirstMoment( imagedata+i*scaledvolumesize, meandata+i*scaledvolumesize, sizes[scale], configuration[scale].patchsize, &min, &max);
         ComputeSecondMoment(imagedata+i*scaledvolumesize, meandata+i*scaledvolumesize, vardata+i*scaledvolumesize, sizes[scale], configuration[scale].patchsize, &min, &max);
       }
     } else {
@@ -364,7 +365,7 @@ int mincbeast_v1(beast_options * _options)
     if (_options->verbose) fprintf(stderr,"Mask size: %d\nAlpha: %f\n",masksize,configuration[scale].alpha);
 
     /* make sure we starting from a clean slate */
-    wipe_data(segsubject[scale],sizes[scale],0.0);
+    wipe_data(segsubject[scale], sizes[scale], 0.0);
 
     if (_options->flipimages) {
       /* doubling the library selection by flipping images along the mid-sagittal plane */
@@ -406,6 +407,7 @@ int mincbeast_v1(beast_options * _options)
                         configuration[scale].patchsize, configuration[scale].searcharea, configuration[scale].beta, 
                         configuration[scale].threshold, sizes[scale], selection_size, segsubject[scale], patchcount[scale]);
     }
+    
 
     free(imagedata);
     free(maskdata);
@@ -418,13 +420,14 @@ int mincbeast_v1(beast_options * _options)
       add_mask_data(segsubject[scale], positivemask[scale], sizes[scale]);
     }
 
+    
     /* add the certain segmentation from the previous scale */
     add_mask_data(segsubject[scale], segmented[scale], sizes[scale]);
-
+    
     if ( _options->medianfilter ) {
       median_filter(segsubject[scale], sizes[scale], 3);
     }
-
+    
     /* the patch filter is experimental */
     if ( _options->patchfilter ) {
       wipe_data(filtered[scale],sizes[scale],0.0);
@@ -460,20 +463,22 @@ int mincbeast_v1(beast_options * _options)
     targetscale=0;
     configuration[targetscale].alpha = _options->alpha;
   }
-
+  
   if (!_options->outputprob) {
     if (_options->verbose) fprintf(stderr,"Thresholding estimator at %f\n",configuration[targetscale].alpha);
     threshold_data(segsubject[targetscale], sizes[targetscale], configuration[targetscale].alpha);
     getLargestObject_float(segsubject[targetscale], sizes[targetscale], 1, 0);
-
+    
     if (_options->fill_output) {
       wipe_data(mask[targetscale], sizes[targetscale], 1.0);
       filled = flood_fill_float(segsubject[targetscale], mask[targetscale], sizes[targetscale], 0, 0, 0, 0, 6);
+      
       //segsubject[targetscale]=mask[targetscale];
       cp_volume(mask[targetscale],segsubject[targetscale],sizes[targetscale]);
+      
     }
   }
-
+  
   meta[targetscale]->history=strdup(_options->history_label);
   if(write_volume_generic(_options->output_file, segsubject[targetscale], meta[targetscale],!_options->outputprob)) {
     fprintf(stderr,"Can't save output to %s\n", _options->output_file);

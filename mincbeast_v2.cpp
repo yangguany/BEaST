@@ -54,13 +54,10 @@ int mincbeast_v2(beast_options * _options)
   image_metadata *mask_meta;
   image_metadata *temp_meta;
   int targetvoxelsize=1;
-
   
-  char *positive_file=NULL;
   char *selection_file=NULL;
   char *count_file=NULL;
   char *conf_file=NULL;
-  char *mask_file=NULL;
 
   time_t timer;
   
@@ -68,12 +65,13 @@ int mincbeast_v2(beast_options * _options)
   timer = time(NULL);
 
   if (_options->mask_file==NULL) {
-    mask_file=(char*)malloc((strlen(_options->libdir)+20));
-    sprintf(mask_file,"%s/margin_mask.mnc",_options->libdir);
+    _options->mask_file=(char*)malloc((strlen(_options->libdir)+20));
+    sprintf(_options->mask_file,"%s/margin_mask.mnc",_options->libdir);
   }
+  
   if ((!_options->nopositive) && (_options->positive_file==NULL)) {
-    positive_file=(char*)malloc((strlen(_options->libdir)+30));
-    sprintf(positive_file,"%s/intersection_mask.mnc",_options->libdir);
+    _options->positive_file=(char*)malloc((strlen(_options->libdir)+30));
+    sprintf(_options->positive_file,"%s/intersection_mask.mnc",_options->libdir);
   }
 
   if(!_options->clobber) {
@@ -106,7 +104,7 @@ int mincbeast_v2(beast_options * _options)
   free(tempdata);
 
   if ((temp_meta=read_volume(_options->mask_file, &tempdata, tmpsizes)) == NULL) {
-    fprintf(stderr,"ERROR! Image not read: %s\n",mask_file);
+    fprintf(stderr,"ERROR! Image not read: %s\n",_options->mask_file);
     return STATUS_ERR;
   }
   free_meta(temp_meta);
@@ -192,6 +190,7 @@ int mincbeast_v2(beast_options * _options)
       configuration[scale].beta        = input_conf[i].beta;
       configuration[scale].threshold   = input_conf[i].threshold;
       configuration[scale].selectionsize=input_conf[i].selectionsize;
+      
       if (scale>initialscale)
         initialscale=scale;
       if (scale<targetscale)
@@ -227,13 +226,13 @@ int mincbeast_v2(beast_options * _options)
       fprintf(stderr,"ERROR! Number of images and masks does not match!\n");
       return STATUS_ERR;
   }
-  if ( num_images<_options->selectionsize ) {
+  if ( num_images< _options->selectionsize ) {
     fprintf(stderr,"ERROR! Cannot select more images than in the library!\n\tlibrary images: %d\n\tselection: %d\n",num_images,_options->selectionsize);
     return STATUS_ERR;
   }
   
   if ((mask_meta=read_volume(_options->mask_file, &tempdata, tmpsizes)) == NULL) {
-    fprintf(stderr,"ERROR! Image not read: %s\n",mask_file);
+    fprintf(stderr,"ERROR! Image not read: %s\n",_options->mask_file);
     return STATUS_ERR;
   }
   if ((tmpsizes[0]!=sizes[0][0]) || (tmpsizes[1]!=sizes[0][1]) || (tmpsizes[2]!=sizes[0][2])) {

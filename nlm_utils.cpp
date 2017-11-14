@@ -224,7 +224,6 @@ void ExtractPatch_norm(const float*  ima, float*  Patch, int x, int y, int z, in
       if(ni1<0) ni1=-ni1;
       else if(ni1>=sx) ni1=2*sx-ni1-1;
 #endif
-      
       for(j=-size;j<=size;j++)
       {
         int nj1=y+j;
@@ -232,7 +231,6 @@ void ExtractPatch_norm(const float*  ima, float*  Patch, int x, int y, int z, in
         if(nj1<0) nj1=-nj1;
         else if(nj1>=sy) nj1=2*sy-nj1-1;
 #endif
-
       #if _OPENMP>=201307
         #pragma omp simd
       #endif  
@@ -245,7 +243,6 @@ void ExtractPatch_norm(const float*  ima, float*  Patch, int x, int y, int z, in
               if(nk1<0) nk1=-nk1;
               else if(nk1>=sz) nk1=2*sz-nk1-1;
 #endif
-                    
               v=ima[ni1*(sz*sy)+(nj1*sz)+nk1]-mean;
               norm+=v*v;
               Patch[(i+size)*(Psize*Psize)+((j+size)*Psize)+(k+size)] = v;
@@ -253,7 +250,6 @@ void ExtractPatch_norm(const float*  ima, float*  Patch, int x, int y, int z, in
     }
   }  
   norm=sqrt(norm);
-  
 #if _OPENMP>=201307
     #pragma omp simd
 #endif  

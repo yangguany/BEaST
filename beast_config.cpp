@@ -107,8 +107,6 @@ int init_arguments(beast_options * _options)
 }
 
 
-
-
 int get_arguments(int argc, char  *argv[] , beast_options * _options)
 {
   init_arguments(_options);
