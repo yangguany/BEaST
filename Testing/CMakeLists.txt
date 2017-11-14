@@ -33,85 +33,115 @@ ADD_BEAST_TEST(MINCBEAST_V1_SSD_4MM ${CMAKE_BINARY_DIR}/mincbeast
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
   -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.4mm.conf 
-  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_4mm.mnc 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_ssd_4mm.mnc 
   -verbose -clob -median -same_resolution  )
 
 ADD_BEAST_TEST(MINCBEAST_V1_SSD_2MM ${CMAKE_BINARY_DIR}/mincbeast 
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
   -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.2mm.conf 
-  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_2mm.mnc 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_ssd_2mm.mnc 
   -verbose -clob -median -same_resolution  )
   
-ADD_BEAST_TEST(MINCBEAST_V1_SSD_1MM ${CMAKE_BINARY_DIR}/mincbeast 
- ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
- ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
-  -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.1mm.conf 
-  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_1mm.mnc 
-  -verbose -clob -median -same_resolution  )
-
 ADD_BEAST_TEST(MINCBEAST_V1_SPARSE_4MM ${CMAKE_BINARY_DIR}/mincbeast 
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
   -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.4mm.conf 
-  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_4mm.mnc 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_sparse_4mm.mnc 
   -verbose -clob -median -same_resolution -sparse  )
 
 ADD_BEAST_TEST(MINCBEAST_V1_SPARSE_2MM ${CMAKE_BINARY_DIR}/mincbeast 
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
   -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.2mm.conf 
-  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_2mm.mnc 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_sparse_2mm.mnc 
   -verbose -clob -median -same_resolution -sparse  )
   
-ADD_BEAST_TEST(MINCBEAST_V1_SPARSE_1MM ${CMAKE_BINARY_DIR}/mincbeast 
- ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
- ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
-  -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.1mm.conf 
-  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_1mm.mnc 
-  -verbose -clob -median -same_resolution -sparse  )
-
   
 ADD_BEAST_TEST(MINCBEAST_V2_SSD_4MM ${CMAKE_BINARY_DIR}/mincbeast 
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
   -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.4mm.conf 
-  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_4mm.mnc 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v2_ssd_4mm.mnc 
   -verbose -clob -median -same_resolution -v2 -selection_num 5  )
 
 ADD_BEAST_TEST(MINCBEAST_V2_SSD_2MM ${CMAKE_BINARY_DIR}/mincbeast 
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
   -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.2mm.conf 
-  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_2mm.mnc 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_ssd_2mm.mnc 
   -verbose -clob -median -same_resolution -v2 -selection_num 5)
   
-ADD_BEAST_TEST(MINCBEAST_V2_SSD_1MM ${CMAKE_BINARY_DIR}/mincbeast 
- ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
- ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
-  -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.1mm.conf 
-  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_1mm.mnc 
-  -verbose -clob -median -same_resolution -v2 -selection_num 5)
-
-
 ADD_BEAST_TEST(MINCBEAST_V2_SPARSE_4MM ${CMAKE_BINARY_DIR}/mincbeast 
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
   -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.4mm.conf 
-  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_4mm.mnc 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v2_sparse_4mm.mnc 
   -verbose -clob -median -same_resolution -sparse -v2 -selection_num 5)
 
 ADD_BEAST_TEST(MINCBEAST_V2_SPARSE_2MM ${CMAKE_BINARY_DIR}/mincbeast 
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
   -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.2mm.conf 
-  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_2mm.mnc 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v2_sparse_2mm.mnc 
   -verbose -clob -median -same_resolution -sparse -v2 -selection_num 5)
   
-ADD_BEAST_TEST(MINCBEAST_V2_SPARSE_1MM ${CMAKE_BINARY_DIR}/mincbeast 
+
+  
+ADD_BEAST_TEST(MINCBEAST_V1_SSD_4MM_D ${CMAKE_BINARY_DIR}/mincbeast 
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
-  -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.1mm.conf 
-  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_1mm.mnc 
-  -verbose -clob -median -same_resolution -sparse -v2 -selection_num 5)
+  -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.4mm.conf 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v2_ssd_d_4mm.mnc 
+  -verbose -clob -median -same_resolution -double )
 
+ADD_BEAST_TEST(MINCBEAST_V1_SSD_2MM_D ${CMAKE_BINARY_DIR}/mincbeast 
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
+  -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.2mm.conf 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v2_ssd_d_2mm.mnc 
+  -verbose -clob -median -same_resolution -double  )
+  
+  
+ADD_BEAST_TEST(MINCBEAST_V1_SPARSE_4MM_D ${CMAKE_BINARY_DIR}/mincbeast 
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
+  -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.4mm.conf 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v2_sparse_d_4mm.mnc 
+  -verbose -clob -median -same_resolution -sparse   -double)
+
+ADD_BEAST_TEST(MINCBEAST_V1_SPARSE_2MM_D ${CMAKE_BINARY_DIR}/mincbeast 
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
+  -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.2mm.conf 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v1_sparse_d_2mm.mnc 
+  -verbose -clob -median -same_resolution -sparse   -double)
+  
+  
+ADD_BEAST_TEST(MINCBEAST_V2_SSD_4MM_D ${CMAKE_BINARY_DIR}/mincbeast 
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
+  -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.4mm.conf 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v2_ssd_d_4mm.mnc 
+  -verbose -clob -median -same_resolution -v2 -selection_num 5  -double )
+
+ADD_BEAST_TEST(MINCBEAST_V2_SSD_2MM_D ${CMAKE_BINARY_DIR}/mincbeast 
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
+  -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.2mm.conf 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v2_ssd_d_2mm.mnc 
+  -verbose -clob -median -same_resolution -v2 -selection_num 5  -double)
+  
+ADD_BEAST_TEST(MINCBEAST_V2_SPARSE_4MM_D ${CMAKE_BINARY_DIR}/mincbeast 
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
+  -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.4mm.conf 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v2_sparse_d_4mm.mnc 
+  -verbose -clob -median -same_resolution -sparse -v2 -selection_num 5  -double)
+
+ADD_BEAST_TEST(MINCBEAST_V2_SPARSE_2MM_D ${CMAKE_BINARY_DIR}/mincbeast 
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
+ ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
+  -conf ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/default.2mm.conf 
+  ${CMAKE_CURRENT_BINARY_DIR}/test_v2_sparse_d_2mm.mnc 
+  -verbose -clob -median -same_resolution -sparse -v2 -selection_num 5  -double )
