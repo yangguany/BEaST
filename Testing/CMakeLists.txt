@@ -24,6 +24,11 @@ MACRO(ADD_BEAST_TEST name cmd)
    
 ENDMACRO(ADD_BEAST_TEST)
 
+
+#
+# TODO: add testing of output to be close to expected result
+#
+
 ADD_BEAST_TEST(MINCBEAST_V1_SSD_4MM ${CMAKE_BINARY_DIR}/mincbeast 
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
  ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 
