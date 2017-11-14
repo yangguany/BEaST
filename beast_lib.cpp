@@ -331,6 +331,16 @@ int cmp_ssd(const void *vp, const void *vq){
   return ((diff>=0.0) ? ((diff>0.0) ? +1 : 0) : -1);
 }
 
+int cmp_ssd_d(const void *vp, const void *vq){
+  const ssd_td *t1 = (ssd_td *)vp;
+  const ssd_td *t2 = (ssd_td *)vq;
+  const double p = t1->ssd;
+  const double q = t2->ssd;
+  double diff = p - q;
+  
+  return ((diff>=0.0) ? ((diff>0.0) ? +1 : 0) : -1);
+}
+
 
 static inline float get_ssd(const float *  I1,const float *  I2,const float *  mask,const int *  sizes){
   int j;
@@ -361,6 +371,40 @@ static inline float get_ssd(const float *  I1,const float *  I2,const float *  m
   ssd /= count;
   return ssd;
 }
+
+
+double dice_kappa(const float *  I1,const float *  I2,const int *  sizes) {
+  int j;
+  
+  double count1=0.0;
+  double count2=0.0;
+  double intersect=0.0;
+  
+  #pragma omp parallel for reduction(+:count1) reduction(+:count2) reduction(+:intersect)
+  for (j=0;j<sizes[0];j++){
+    int k,l;
+    for (k=0;k<sizes[1];k++){
+      
+      #if _OPENMP>=201307
+        #pragma omp simd
+      #endif  
+      for (l=0;l<sizes[2];l++){
+        int index = j*sizes[1]*sizes[2] + k*sizes[2] + l;
+        if(I1[index]>0.5) count1+=1.0;
+        if(I2[index]>0.5) count2+=1.0;
+        if(I1[index]>0.5 && I2[index]>0.5) intersect+=1.0;
+      }
+    }
+  }
+  
+  count1+=count2;
+  
+  if(count1>0.0)
+    return 2*intersect/count1;
+  else
+    return 0.0;
+}
+
 
 static inline float get_ssd_double(const float *  I1,const float *  I2,const float *  mask,const int *  sizes){
   int j;
@@ -912,7 +956,7 @@ int pre_selection_double(const float *subject, const float *mask,
   fprintf(stderr,"Performing pre-selection ");
 
   volumesize=sizes[0]*sizes[1]*sizes[2];
-  ssd = (ssd_td *)malloc(librarysize*sizeof(ssd_td));
+  ssd = (ssd_td *)calloc(librarysize,sizeof(ssd_td));
 
   fprintf(stderr,"(%ld MB/subject)",volumesize*sizeof(float)/(1024*1024));
   
@@ -933,7 +977,7 @@ int pre_selection_double(const float *subject, const float *mask,
     free_meta(_meta);
   }
 
-  qsort(ssd, librarysize, sizeof(ssd_t), cmp_ssd);
+  qsort(ssd, librarysize, sizeof(ssd_td), cmp_ssd_d);
 
   fprintf(stderr,"done\n");
 

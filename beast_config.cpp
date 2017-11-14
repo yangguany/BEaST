@@ -98,11 +98,14 @@ int init_arguments(beast_options * _options)
   _options->beta         = 0.25;
   _options->threshold    = 0.95;
   _options->selectionsize = 20;
+  _options->kappa_limit  = 0.9;
   _options->positive_file = NULL;
   _options->selection_file= NULL;
   _options->count_file  = NULL;
   _options->conf_file   = NULL;
   _options->mask_file   = NULL;
+  _options->compare_file= NULL;
+  
   _options->library_prefix = "library";
 }
 
@@ -215,6 +218,10 @@ int get_arguments(int argc, char  *argv[] , beast_options * _options)
       "-no_positive", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->nopositive,
       "Do not apply a positive mask."
     },
+    {
+      "-ssd", ARGV_CONSTANT, (char *) FALSE, (char *) &_options->use_sparse,
+      "Use SSD patch merging (opposite to sparse, default)"
+    },
 #ifdef USE_SPAMS
     {
       "-sparse", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->use_sparse,
@@ -244,12 +251,28 @@ int get_arguments(int argc, char  *argv[] , beast_options * _options)
       "library prefix, for cross-validation experiment."
     },
     {
+      "-v1", ARGV_CONSTANT, (char *) FALSE, (char *) &_options->v2,
+      "Run mincbeast v1 (preselection done at each resoltution independently). (default)"
+    },
+    {
       "-v2", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->v2,
       "Run mincbeast v2 (preselection done onece at 1mm)."
     },
     {
       "-double", ARGV_CONSTANT, (char *) TRUE, (char *) &_options->use_double,
       "Use double precision for calculations."
+    },
+    {
+      "-single", ARGV_CONSTANT, (char *) FALSE, (char *) &_options->use_double,
+      "Use single precision for calculations. (default)"
+    },
+    {
+      "-compare", ARGV_STRING, (char *) 1, (char *) &_options->compare_file,
+      "Reference mask for comparision."
+    },
+    {
+      "-kappa_limit", ARGV_FLOAT, (char *) 1, (char *) &_options->kappa_limit,
+      "Specify threshold for overlap kappa (for comparision)."
     },
     
     {NULL, ARGV_END, NULL, NULL, NULL}

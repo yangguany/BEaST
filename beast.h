@@ -113,6 +113,7 @@ typedef struct  { /*micnbeast command line options*/
   double alpha;
   double beta;
   double threshold;
+  double kappa_limit;
   int selectionsize;
   
   char *positive_file;
@@ -121,6 +122,8 @@ typedef struct  { /*micnbeast command line options*/
   char *conf_file;
   char *mask_file;
   char *library_prefix;
+  char *compare_file;
+  
 } beast_options;
 
 
@@ -175,6 +178,7 @@ void cleanup_arguments(beast_options * _options);
 int mincbeast_v1(beast_options * _options);
 int mincbeast_v2(beast_options * _options);
 
+double dice_kappa(const float *  I1,const float *  I2,const int *  sizes);
 
 #endif
 

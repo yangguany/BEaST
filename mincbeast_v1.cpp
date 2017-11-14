@@ -203,7 +203,7 @@ int mincbeast_v1(beast_options * _options)
   means =  alloc_3d_char(3, MAXLIBSIZE, FILENAMELENGTH);
   vars =   alloc_3d_char(3, MAXLIBSIZE, FILENAMELENGTH);
 
-  for (scale=initialscale;scale>=targetscale;scale--){
+  for (scale=initialscale;scale>=0;scale--) {
     fprintf(stderr,"%d: %d %d %d %4.2lf %4.2lf %4.2lf %d\n",scale,
             configuration[scale].voxelsize, configuration[scale].patchsize, configuration[scale].searcharea,
             configuration[scale].alpha,     configuration[scale].beta, configuration[scale].threshold, configuration[scale].selectionsize);
@@ -221,12 +221,12 @@ int mincbeast_v1(beast_options * _options)
       return STATUS_ERR;
     }
 
-    if ( num_images<configuration[scale].selectionsize ) {
-      fprintf(stderr,"ERROR! Cannot select more images than in the library!\n"
-                     "\tlibrary images: %d\n"
-                     "\tselection: %d\n",num_images,configuration[scale].selectionsize);
-      return STATUS_ERR;
-    }
+//     if ( num_images<configuration[scale].selectionsize ) {
+//       fprintf(stderr,"ERROR! Cannot select more images than in the library!\n"
+//                      "\tlibrary images: %d\n"
+//                      "\tselection: %d\n",num_images,configuration[scale].selectionsize);
+//       return STATUS_ERR;
+//     }
 
     if ( _options->load_moments ) {
       if ( read_list(meanlist, means[scale],_options->abspath?"":_options->libdir)!=num_images ) {
@@ -241,7 +241,7 @@ int mincbeast_v1(beast_options * _options)
   }
 
   if ((mask_meta=read_volume(_options->mask_file, &tempdata, tmpsizes)) == NULL) {
-    fprintf(stderr,"ERROR! Image not read: %s\n",_options->mask_file);
+    fprintf(stderr,"ERROR! mask_file not read: %s\n",_options->mask_file);
     return STATUS_ERR;
   }
   if ((tmpsizes[0]!=sizes[0][0]) || (tmpsizes[1]!=sizes[0][1]) || (tmpsizes[2]!=sizes[0][2])) {
@@ -253,14 +253,14 @@ int mincbeast_v1(beast_options * _options)
 
   meta[1] = read_volume(images[1][0], &tempdata, sizes[1]);
   if (meta[1] == NULL) {
-    fprintf(stderr,"ERROR! Image not read: %s\n",images[1][0]);
+    fprintf(stderr,"ERROR! Ref Image not read: %s\n",images[1][0]);
     return STATUS_ERR;
   }
   free(tempdata);
 
   meta[2] = read_volume(images[2][0], &tempdata, sizes[2]);
   if (meta[2] == NULL) {
-    fprintf(stderr,"ERROR! Image not read: %s\n",images[2][0]);
+    fprintf(stderr,"ERROR! Ref mask not read: %s\n",images[2][0]);
     return STATUS_ERR;
   }
   free(tempdata);
@@ -288,7 +288,7 @@ int mincbeast_v1(beast_options * _options)
       pre_selection(subject[scale], mask[scale], images[scale], sizes[scale], num_images, 
                   configuration[scale].selectionsize, selection, _options->selection_file,_options->verbose);
 
-    if (_options->verbose) fprintf(stderr,"Performing segmentation at %dmm resolution\nReading files ",scales[scale]);
+    if (_options->verbose) fprintf(stderr, "Performing segmentation at %dmm resolution\nReading files ",scales[scale]);
 
     scaledvolumesize = sizes[scale][0]*sizes[scale][1]*sizes[scale][2];
 
@@ -483,6 +483,35 @@ int mincbeast_v1(beast_options * _options)
   if(write_volume_generic(_options->output_file, segsubject[targetscale], meta[targetscale],!_options->outputprob)) {
     fprintf(stderr,"Can't save output to %s\n", _options->output_file);
     return STATUS_ERR;
+  }
+  
+  if(_options->compare_file)
+  {
+      image_metadata *ref_meta;
+      float *ref_data;
+      int ref_sizes[5];
+      double kappa=0.0;
+      
+      if ((ref_meta=read_volume(_options->compare_file, &ref_data, ref_sizes)) == NULL) {
+        fprintf(stderr,"ERROR! Image not read: %s\n",_options->compare_file);
+        return STATUS_ERR;
+      }
+      
+      /*TODO: check sizes!*/
+      
+      kappa=dice_kappa(ref_data,segsubject[targetscale],sizes[targetscale]);
+      
+      free(ref_data);
+      free_meta(ref_meta);
+      
+      fprintf(stdout,"Comparision kappa:%f\n",kappa);
+      
+      if(kappa<_options->kappa_limit)
+      {
+        fprintf(stderr,"Kappa below threshold!\n");
+        return STATUS_ERR;
+      }
+    
   }
 
   free_2d_float(mask);

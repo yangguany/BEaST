@@ -438,6 +438,36 @@ int mincbeast_v2(beast_options * _options)
     return STATUS_ERR;
   }
 
+  if(_options->compare_file)
+  {
+      image_metadata *ref_meta;
+      float *ref_data;
+      int ref_sizes[5];
+      double kappa=0.0;
+      
+      if ((ref_meta=read_volume(_options->compare_file, &ref_data, ref_sizes)) == NULL) {
+        fprintf(stderr,"ERROR! Image not read: %s\n",_options->compare_file);
+        return STATUS_ERR;
+      }
+      
+      /*TODO: check sizes!*/
+      
+      kappa=dice_kappa(ref_data,segsubject[targetscale],sizes[targetscale]);
+      
+      free(ref_data);
+      free_meta(ref_meta);
+      
+      fprintf(stdout,"Comparision kappa:%f\n",kappa);
+      
+      if(kappa<_options->kappa_limit)
+      {
+        fprintf(stderr,"Kappa below threshold!\n");
+        return STATUS_ERR;
+      }
+    
+  }
+  
+  
   free_2d_float(mask);
   free_2d_float(subject);
   if (_options->positive_file!=NULL)
