@@ -58,12 +58,16 @@ test $max -lt $num_args && echo -e "Usage: `basename $0` $usage_string\nOptions:
 root=${list[0]}
 outdir=${list[1]}
 
-if [ -f /opt/minc/minc-toolkit-config.sh ]; then
-    source /opt/minc/minc-toolkit-config.sh
-else
-    echo "Minc-toolkit not found in /opt/minc"
+if ! hash mincconvert 2> /dev/null; then
+    echo "Minc-toolkit not found in PATH"
     exit
 fi
+
+adni_count=`ls -1 $root/*/BEaST_normalized_MPRAGE/*/*/*.mnc 2> /dev/null|wc -l`
+if [ $adni_count -lt 1 ]; then
+    echo "No ADNI files found in $root"
+    exit
+fi 
 
 tmp=`mktemp -d`
 
