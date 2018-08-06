@@ -351,7 +351,7 @@ void ***alloc_data3D(int sizes[3], byte size_element)
 
   ii[0] = i;
   for (j = 1; j < limit; j++) {
-    ii[j] = ii[0] + j*sizes[2]*size_element;
+    ii[j] = (char*)ii[0] + j*sizes[2]*size_element;
   }
 
   return iii;
