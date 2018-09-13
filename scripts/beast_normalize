@@ -34,7 +34,16 @@ listcount=0
 reg=1
 n3=1
 initxfm=""
-modeldir=$MNI_DATAPATH/icbm152_model_09c
+
+OLDIFS=${IFS}
+IFS=:
+for path in ${MNI_DATAPATH}; do
+  if [[ -d ${path}/icbm152_model_09c ]]; then
+    modeldir=${path}/icbm152_model_09c
+  fi
+done
+IFS=${OLDIFS}
+
 modelname=mni_icbm152_t1_tal_nlin_sym_09c
 intensitynorm=2
 
