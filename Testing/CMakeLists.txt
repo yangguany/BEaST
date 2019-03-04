@@ -24,12 +24,18 @@ MACRO(ADD_BEAST_TEST name cmd)
    
 ENDMACRO(ADD_BEAST_TEST)
 
+
+SET(MODES ssd)
+
+IF(BUILD_SPAMS)
+SET(MODES ${MODES} sparse)
+ENDIF(BUILD_SPAMS)
+
 FOREACH(RES 2 4)
     FOREACH(VER v1 v2)
-        FOREACH(MODE ssd sparse)
+        FOREACH(MODE ${MODES})
             FOREACH(PREC single double)
                 SET(TEST_NAME "MINCBEAST_${RES}_${VER}_${MODE}_${PREC}")
-                
                     ADD_BEAST_TEST(${TEST_NAME} ${CMAKE_BINARY_DIR}/mincbeast 
                         ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0
                         ${CMAKE_CURRENT_BINARY_DIR}/beast-testing-1.0/ICBM_pol/stx/1mm/00100.mnc 

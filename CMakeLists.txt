@@ -30,30 +30,29 @@ IF(NOT MINC_TOOLKIT_BUILD)
   
   OPTION(USE_NIFTI      "Use niftiio library" ON)
   OPTION(USE_DMALLOC    "Use dmalloc library to debug memory leaks" OFF)
-  
+
   IF(USE_NIFTI)
     SET(NIFTI_ROOT "/usr/local/bic" CACHE PATH "niftiio library base")
   ENDIF(USE_NIFTI)
 
   OPTION(MT_USE_OPENMP  "Use OpenMP multi-threading" OFF)
-  FIND_PACKAGE(OpenBLAS )
+  OPTION(MT_SPARSE_BEAST  "Build sparse BEAST (experimental)" OFF)
 
-ENDIF(NOT MINC_TOOLKIT_BUILD)
+  IF(MT_SPARSE_BEAST)
+    FIND_PACKAGE(OpenBLAS )
+  ENDIF(MT_SPARSE_BEAST)
+ELSE()
+    SET(OpenBLAS_INCLUDE_DIR ${OpenBLAS_INCLUDE_DIRS} CACHE PATH "OpenBLAS Include directory")
+    SET(OpenBLAS_LIBRARY     ${OpenBLAS_LIBRARIES}    CACHE PATH "OpenBLAS library ")
+ENDIF()
 
-SET(OpenBLAS_INCLUDE_DIR ${OpenBLAS_INCLUDE_DIRS} CACHE PATH "OpenBLAS Include directory")
-SET(OpenBLAS_LIBRARY     ${OpenBLAS_LIBRARIES}    CACHE PATH "OpenBLAS library ")
 
-IF(OpenBLAS_FOUND OR OpenBLAS_LIBRARY)
-  SET(HAVE_OPENBLAS ON) 
-  SET(HAVE_SPAMS ON) 
+IF((OpenBLAS_FOUND OR OpenBLAS_LIBRARY) AND MT_SPARSE_BEAST)
+  SET(BUILD_SPAMS ON)
   ADD_DEFINITIONS(-DHAVE_OPENBLAS -DUSE_SPAMS)
-  SET(HAVE_OPENBLAS ON)
-ELSE(OpenBLAS_FOUND OR OpenBLAS_LIBRARY)
- SET(HAVE_OPENBLAS OFF)
- SET(HAVE_SPAMS OFF)
- message("Building BEAST without SPAMS")
-ENDIF(OpenBLAS_FOUND OR OpenBLAS_LIBRARY) 
-
+ELSE()
+  SET(BUILD_SPAMS OFF)
+ENDIF()
 
 SET(PACKAGE "mincbeast")
 
@@ -111,7 +110,7 @@ endif()
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_BINARY_DIR})
 
-IF(HAVE_SPAMS)
+IF(BUILD_SPAMS)
     INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/include 
         ${CMAKE_SOURCE_DIR}/spams-2.6.1 
         ${CMAKE_SOURCE_DIR}/spams-2.6.1/spams/linalg
@@ -143,7 +142,7 @@ IF(HAVE_SPAMS)
         spams-2.6.1/spams.h
     )
     
-ENDIF(HAVE_SPAMS)
+ENDIF(BUILD_SPAMS)
 
 SET(BEAST_SRC 
   alloc.cpp
@@ -161,16 +160,19 @@ SET(BEAST_SRC
   mincbeast_v2.cpp
 )
 
-IF(HAVE_SPAMS)
+IF(BUILD_SPAMS)
+    INCLUDE_DIRECTORIES(${OpenBLAS_INCLUDE_DIRS})
+
     SET(BEAST_SRC ${BEAST_SRC} ${SPAMS_SRC})
     # test SPAMS
     ADD_EXECUTABLE(spams_test
         spams_test.cpp
     )
     message("OpenBLAS_LIBRARY=${OpenBLAS_LIBRARY}")
+
     TARGET_LINK_LIBRARIES( spams_test
-                  ${OpenBLAS_LIBRARY} )
-ENDIF(HAVE_SPAMS)
+                  ${OpenBLAS_LIBRARIES} )
+ENDIF(BUILD_SPAMS)
 
 IF(LIBMINC_FOUND)
   INCLUDE( ${LIBMINC_USE_FILE} )
@@ -224,10 +226,10 @@ TARGET_LINK_LIBRARIES(beast
     ${VOLUME_IO_LIBRARIES} 
     ${LIBMINC_LIBRARIES} )
 
-IF(HAVE_SPAMS)
+IF(BUILD_SPAMS)
   TARGET_LINK_LIBRARIES( beast
-                  ${OpenBLAS_LIBRARY} )
-ENDIF(HAVE_SPAMS)
+                  ${OpenBLAS_LIBRARIES} )
+ENDIF(BUILD_SPAMS)
 
 ADD_EXECUTABLE(mincbeast
   mincbeast.cpp
@@ -257,5 +259,3 @@ ENDIF(BUILD_TESTING)
 # INSTALL(DIRECTORY free_database/
 #         DESTINATION share/mincbeast_free )
 # TODO download and create average models
-
-
