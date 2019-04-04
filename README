@@ -1,5 +1,7 @@
 mincbeast - implementation of BEaST
 
+WebSite:   http://www.bic.mni.mcgill.ca/ServicesSoftwareAdvancedImageProcessingTools/BEaST
+
 This is a C implementation of BEaST (Brain Extraction using non-local
 Segmentation Technique).
 
